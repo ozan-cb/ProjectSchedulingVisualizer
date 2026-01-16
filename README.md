@@ -4,7 +4,9 @@
 
 ## Demo
 
-<video src="https://raw.githubusercontent.com/ozan-cb/ProjectSchedulingVisualizer/main/RCPSP-viz.mov" width="800" controls></video>
+[Watch the demo video](https://raw.githubusercontent.com/ozan-cb/ProjectSchedulingVisualizer/main/RCPSP-viz.mov) (2.2 MB)
+
+> **Note:** GitHub doesn't support inline playback of `.mov` files. Click the link above to download and view the video.
 
 ## What is RCPSP?
 
