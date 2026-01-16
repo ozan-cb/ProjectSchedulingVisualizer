@@ -4,7 +4,7 @@
 
 ## Demo
 
-https://github.com/user-attachments/assets/RCPSP-viz.mov
+<video src="https://raw.githubusercontent.com/ozan-cb/ProjectSchedulingVisualizer/main/RCPSP-viz.mov" width="800" controls></video>
 
 ## What is RCPSP?
 
