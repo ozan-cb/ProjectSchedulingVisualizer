@@ -10,6 +10,7 @@
 #include "ortools/sat/cp_model_solver.h"
 #include "ortools/sat/cp_model_loader.h"
 #include "ortools/sat/cp_model_mapping.h"
+#include "ortools/sat/cp_model_solver_helpers.h"
 #include "ortools/sat/model.h"
 #include "ortools/sat/integer.h"
 
@@ -334,46 +335,32 @@ int main(int argc, char** argv) {
   // Create Model for solver
   Model model;
   
-  // Load variables from proto into model - this creates CpModelMapping
-  LoadVariables(model_proto, false, &model);
-  CpModelMapping* mapping = model.GetOrCreate<CpModelMapping>();
-  std::cout << "Loaded variables into model" << std::endl;
-  
-  // Get required components
-  IntegerTrail* integer_trail = model.GetOrCreate<IntegerTrail>();
-  GenericLiteralWatcher* watcher = model.GetOrCreate<GenericLiteralWatcher>();
-
-  // Convert model-builder variables to solver variables using mapping
-  std::vector<IntegerVariable> solver_start_vars;
-  for (const IntegerVariable& model_var : start_vars) {
-    IntegerVariable solver_var = mapping->Integer(model_var.value());
-    solver_start_vars.push_back(solver_var);
-  }
-  std::cout << "Converted " << solver_start_vars.size() << " variables to solver variables" << std::endl;
-
-  // Create and register start variable watcher propagator
-  StartVariableWatcher* start_watcher = new StartVariableWatcher(
-    solver_start_vars,
-    task_ids,
-    integer_trail,
-    &logger
-  );
-  
-  // Register propagator with watcher
-  const int propagator_id = watcher->Register(start_watcher);
-  watcher->SetPropagatorId(propagator_id);
-  
-  // Register watches on all start variables' bounds
-  for (const IntegerVariable& var : solver_start_vars) {
-    // Watch both lower and upper bounds
-    watcher->WatchLowerBound(var, propagator_id);
-    watcher->WatchUpperBound(var, propagator_id);
-  }
-  
-  model.TakeOwnership(start_watcher);
-  
-  std::cout << "Registered start variable watcher with ID " << propagator_id << std::endl;
-  std::cout << "Watching " << solver_start_vars.size() << " solver variables" << std::endl;
+  // Add solution observer to log events when solutions are found
+  model.Add(NewFeasibleSolutionObserver([&logger, &task_ids, &start_vars](const CpSolverResponse& response) {
+    std::cout << "Solution found!" << std::endl;
+    
+    // Log events for each task
+    for (size_t i = 0; i < task_ids.size(); ++i) {
+      int task_id = task_ids[i];
+      int64_t start = response.solution(start_vars[i].value());
+      
+      logger.LogEvent({
+        EventType::START_VAR_ASSIGNED,
+        logger.GetTimestamp(),
+        task_id,
+        start,
+        "Start variable fixed to " + std::to_string(start)
+      });
+      
+      logger.LogEvent({
+        EventType::TASK_SCHEDULED,
+        logger.GetTimestamp(),
+        task_id,
+        start,
+        "Task scheduled at time " + std::to_string(start)
+      });
+    }
+  }));
 
   // Configure solver parameters
   SatParameters parameters;
@@ -381,6 +368,7 @@ int main(int argc, char** argv) {
   parameters.set_num_search_workers(1);  // Single worker for propagator to work
   parameters.set_search_branching(SatParameters::PORTFOLIO_SEARCH);
   parameters.set_cp_model_presolve(false);  // Disable presolve to keep propagator
+  parameters.set_enumerate_all_solutions(true);  // Capture all solutions
 
   // Add parameters to model
   model.Add(NewSatParameters(parameters));
@@ -394,13 +382,9 @@ int main(int argc, char** argv) {
     "Solver started"
   });
 
-  // Solve the model using SolveLoadedCpModel since we already loaded variables
+  // Solve the model
   std::cout << "Starting solver..." << std::endl;
-  SolveLoadedCpModel(model_proto, &model);
-  
-  // Get the response from SharedResponseManager
-  SharedResponseManager* response_manager = model.Get<SharedResponseManager>();
-  const CpSolverResponse response = response_manager->GetResponse();
+  const CpSolverResponse response = SolveCpModel(model_proto, &model);
 
   std::cout << "Solver finished" << std::endl;
   std::cout << "Status: " << response.status() << std::endl;
