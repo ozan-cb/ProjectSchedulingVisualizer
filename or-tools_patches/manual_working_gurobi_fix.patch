@@ -1,0 +1,153 @@
+diff --git a/ortools/init/init.cc b/ortools/init/init.cc
+index aefe9ccfb..869294cb6 100644
+--- a/ortools/init/init.cc
++++ b/ortools/init/init.cc
+@@ -20,7 +20,9 @@
+ #include "absl/log/globals.h"
+ #include "absl/strings/string_view.h"
+ #include "ortools/base/init_google.h"
++#if defined(USE_GUROBI)
+ #include "ortools/gurobi/environment.h"
++#endif
+ #include "ortools/sat/cp_model_solver.h"
+ #include "ortools/sat/cp_model_solver_helpers.h"
+ 
+@@ -41,7 +43,11 @@ void CppBridge::SetFlags(const CppFlags& flags) {
+ }
+ 
+ bool CppBridge::LoadGurobiSharedLibrary(absl::string_view full_library_path) {
++#if defined(USE_GUROBI)
+   return LoadGurobiDynamicLibrary({full_library_path}).ok();
++#else
++  return false;
++#endif
+ }
+ 
+ }  // namespace operations_research
+diff --git a/ortools/linear_solver/CMakeLists.txt b/ortools/linear_solver/CMakeLists.txt
+index 3263a8d0c..c0f87c5f3 100644
+--- a/ortools/linear_solver/CMakeLists.txt
++++ b/ortools/linear_solver/CMakeLists.txt
+@@ -17,6 +17,9 @@ list(REMOVE_ITEM _SRCS
+ )
+ list(FILTER _SRCS EXCLUDE REGEX "/model_exporter_main\\.cc")
+ list(FILTER _SRCS EXCLUDE REGEX ".*/.*_test.cc")
++if(NOT USE_GUROBI)
++  list(FILTER _SRCS EXCLUDE REGEX "/gurobi_interface\\.cc")
++endif()
+ if(USE_SCIP)
+   list(APPEND _SRCS ${LPI_GLOP_SRC})
+ endif()
+diff --git a/ortools/linear_solver/linear_solver.cc b/ortools/linear_solver/linear_solver.cc
+index 7058e7203..0e1d80cd7 100644
+--- a/ortools/linear_solver/linear_solver.cc
++++ b/ortools/linear_solver/linear_solver.cc
+@@ -399,8 +399,10 @@ extern MPSolverInterface* BuildSatInterface(MPSolver* const solver);
+ #if defined(USE_SCIP)
+ extern MPSolverInterface* BuildSCIPInterface(MPSolver* const solver);
+ #endif
++#if defined(USE_GUROBI)
+ extern MPSolverInterface* BuildGurobiInterface(bool mip,
+                                                MPSolver* const solver);
++#endif
+ #if defined(USE_CPLEX)
+ extern MPSolverInterface* BuildCplexInterface(bool mip, MPSolver* const solver);
+ #endif
+@@ -449,10 +451,12 @@ MPSolverInterface* BuildSolverInterface(MPSolver* const solver) {
+     case MPSolver::SCIP_MIXED_INTEGER_PROGRAMMING:
+       return BuildSCIPInterface(solver);
+ #endif
++#if defined(USE_GUROBI)
+     case MPSolver::GUROBI_LINEAR_PROGRAMMING:
+       return BuildGurobiInterface(false, solver);
+     case MPSolver::GUROBI_MIXED_INTEGER_PROGRAMMING:
+       return BuildGurobiInterface(true, solver);
++#endif
+ #if defined(USE_CPLEX)
+     case MPSolver::CPLEX_LINEAR_PROGRAMMING:
+       return BuildCplexInterface(false, solver);
+@@ -497,7 +501,9 @@ MPSolver::MPSolver(const std::string& name,
+ 
+ MPSolver::~MPSolver() { Clear(); }
+ 
++#if defined(USE_GUROBI)
+ extern bool GurobiIsCorrectlyInstalled();
++#endif
+ extern bool XpressIsCorrectlyInstalled();
+ 
+ // static
+@@ -531,7 +537,11 @@ bool MPSolver::SupportsProblemType(OptimizationProblemType problem_type) {
+ #endif
+   if (problem_type == GUROBI_LINEAR_PROGRAMMING ||
+       problem_type == GUROBI_MIXED_INTEGER_PROGRAMMING) {
++#if defined(USE_GUROBI)
+     return GurobiIsCorrectlyInstalled();
++#else
++    return false;
++#endif
+   }
+   if (problem_type == SAT_INTEGER_PROGRAMMING) return true;
+ #ifdef USE_SCIP
+diff --git a/ortools/linear_solver/proto_solver/CMakeLists.txt b/ortools/linear_solver/proto_solver/CMakeLists.txt
+index 76b184e26..6d1e806cb 100644
+--- a/ortools/linear_solver/proto_solver/CMakeLists.txt
++++ b/ortools/linear_solver/proto_solver/CMakeLists.txt
+@@ -19,6 +19,9 @@ endif()
+ if(NOT USE_GLPK)
+   list(FILTER _SRCS EXCLUDE REGEX "/glpk_proto_solver.")
+ endif()
++if(NOT USE_GUROBI)
++  list(FILTER _SRCS EXCLUDE REGEX "/gurobi_proto_solver\\.")
++endif()
+ if(NOT USE_HIGHS)
+   list(FILTER _SRCS EXCLUDE REGEX "/highs_proto_solver.")
+ endif()
+diff --git a/ortools/linear_solver/wrappers/model_builder_helper.cc b/ortools/linear_solver/wrappers/model_builder_helper.cc
+index bc5bcdf5e..fc59f408a 100644
+--- a/ortools/linear_solver/wrappers/model_builder_helper.cc
++++ b/ortools/linear_solver/wrappers/model_builder_helper.cc
+@@ -30,12 +30,16 @@
+ #include "absl/strings/str_join.h"
+ #include "ortools/base/helpers.h"
+ #include "ortools/base/options.h"
++#if defined(USE_GUROBI)
+ #include "ortools/gurobi/environment.h"
++#endif
+ #include "ortools/linear_solver/linear_solver.h"
+ #include "ortools/linear_solver/linear_solver.pb.h"
+ #include "ortools/linear_solver/model_exporter.h"
+ #include "ortools/linear_solver/proto_solver/glop_proto_solver.h"
++#if defined(USE_GUROBI)
+ #include "ortools/linear_solver/proto_solver/gurobi_proto_solver.h"
++#endif
+ #include "ortools/linear_solver/proto_solver/sat_proto_solver.h"
+ #include "ortools/linear_solver/proto_solver/xpress_proto_solver.h"
+ #include "ortools/linear_solver/solve_mp_model.h"
+@@ -555,7 +559,11 @@ bool ModelSolverHelper::SolverIsSupported() const {
+   if (solver_type_.value() ==
+           MPModelRequest::GUROBI_MIXED_INTEGER_PROGRAMMING ||
+       solver_type_.value() == MPModelRequest::GUROBI_LINEAR_PROGRAMMING) {
++#if defined(USE_GUROBI)
+     return GurobiIsCorrectlyInstalled();
++#else
++    return false;
++#endif
+   }
+   if (solver_type_.value() ==
+           MPModelRequest::XPRESS_MIXED_INTEGER_PROGRAMMING ||
+@@ -614,6 +622,7 @@ void ModelSolverHelper::Solve(const ModelBuilderHelper& model) {
+       break;
+     }
+ #endif  // defined(USE_PDLP)
++#if defined(USE_GUROBI)
+     case MPModelRequest::
+         GUROBI_LINEAR_PROGRAMMING:  // ABSL_FALLTHROUGH_INTENDED
+     case MPModelRequest::GUROBI_MIXED_INTEGER_PROGRAMMING: {
+@@ -623,6 +632,7 @@ void ModelSolverHelper::Solve(const ModelBuilderHelper& model) {
+       }
+       break;
+     }
++#endif
+ #if defined(USE_HIGHS)
+     case MPModelRequest::HIGHS_LINEAR_PROGRAMMING:  // ABSL_FALLTHROUGH_INTENDED
+     case MPModelRequest::HIGHS_MIXED_INTEGER_PROGRAMMING: {

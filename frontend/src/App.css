@@ -1,0 +1,166 @@
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #ffffff;
+  min-height: 100vh;
+  border-radius: 8px;
+}
+
+.file-loader {
+  text-align: center;
+  padding: 40px;
+}
+
+.file-loader h2 {
+  color: #1976d2;
+  margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.file-input {
+  margin: 20px 0;
+  padding: 10px;
+  font-size: 16px;
+}
+
+.error {
+  color: #d32f2f;
+  background: #ffebee;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.file-format-info {
+  margin-top: 30px;
+  text-align: left;
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 4px;
+}
+
+.file-format-info pre {
+  background: #fff;
+  padding: 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.visualization {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.time-slider {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.time-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.time-controls button {
+  padding: 8px 16px;
+  font-size: 18px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.time-controls button:hover {
+  background: #1565c0;
+}
+
+.slider-container {
+  margin: 20px 0;
+}
+
+.time-display {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #666;
+}
+
+.gantt-chart {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.gantt-chart h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.task-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 15px;
+  background: #fafafa;
+}
+
+.task-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.task-info strong {
+  font-size: 16px;
+  color: #333;
+}
+
+.resource {
+  font-size: 14px;
+  color: #666;
+  background: #e3f2fd;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.task-timeline {
+  margin: 10px 0;
+}
+
+.task-bar {
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.task-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  transition: width 0.3s ease;
+}
+
+.task-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+}
