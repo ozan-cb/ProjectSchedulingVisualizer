@@ -5,6 +5,10 @@
 #include <vector>
 #include <map>
 
+// Hack to access private members for debugging
+#define private public
+#define protected public
+
 #include "ortools/sat/cp_model.h"
 #include "ortools/sat/cp_model.pb.h"
 #include "ortools/sat/cp_model_solver.h"
@@ -13,6 +17,9 @@
 #include "ortools/sat/cp_model_solver_helpers.h"
 #include "ortools/sat/model.h"
 #include "ortools/sat/integer.h"
+
+#undef private
+#undef protected
 
 using namespace operations_research;
 using namespace sat;
@@ -32,6 +39,7 @@ struct Event {
   EventType type;
   int64_t timestamp;
   int task_id;
+  std::string task_name;
   int64_t value;
   std::string description;
 
@@ -41,6 +49,7 @@ struct Event {
     oss << "\"id\":\"" << task_id << "_" << GetTypeString() << "_" << timestamp << "\",";
     oss << "\"type\":\"" << GetTypeString() << "\",";
     oss << "\"taskId\":\"" << task_id << "\",";
+    oss << "\"taskName\":\"" << task_name << "\",";
     oss << "\"timestamp\":" << timestamp << ",";
     oss << "\"startTime\":" << value << ",";
     oss << "\"endTime\":" << (value + 3) << ",";
@@ -116,13 +125,16 @@ class StartVariableWatcher : public PropagatorInterface {
 public:
   StartVariableWatcher(const std::vector<IntegerVariable>& start_vars,
                       const std::vector<int>& task_ids,
+                      const std::vector<std::string>& task_names,
                       IntegerTrail* integer_trail,
                       EventLogger* logger)
       : start_vars_(start_vars),
         task_ids_(task_ids),
+        task_names_(task_names),
         integer_trail_(integer_trail),
         logger_(logger) {
     CHECK(start_vars_.size() == task_ids_.size());
+    CHECK(start_vars_.size() == task_names_.size());
   }
 
   bool Propagate() override {
@@ -136,6 +148,7 @@ public:
     for (size_t i = 0; i < start_vars_.size(); ++i) {
       IntegerVariable var = start_vars_[i];
       int task_id = task_ids_[i];
+      std::string task_name = task_names_[i];
       
       // Get current bounds
       const IntegerValue lb = integer_trail_->LowerBound(var);
@@ -154,6 +167,7 @@ public:
               EventType::BACKTRACK,
               logger_->GetTimestamp(),
               task_id,
+              task_name,
               it->second,
               "Backtracked from " + std::to_string(it->second) + " to " + std::to_string(value)
             });
@@ -165,6 +179,7 @@ public:
             EventType::START_VAR_ASSIGNED,
             logger_->GetTimestamp(),
             task_id,
+            task_name,
             value,
             "Start variable fixed to " + std::to_string(value)
           });
@@ -173,6 +188,7 @@ public:
             EventType::TASK_SCHEDULED,
             logger_->GetTimestamp(),
             task_id,
+            task_name,
             value,
             "Task scheduled at time " + std::to_string(value)
           });
@@ -187,6 +203,7 @@ public:
             EventType::START_VAR_CHANGED,
             logger_->GetTimestamp(),
             task_id,
+            task_name,
             lb.value(),
             "Start variable bounds updated: [" + std::to_string(lb.value()) + ", " + std::to_string(ub.value()) + "]"
           });
@@ -204,6 +221,7 @@ public:
 private:
   std::vector<IntegerVariable> start_vars_;
   std::vector<int> task_ids_;
+  std::vector<std::string> task_names_;
   IntegerTrail* integer_trail_;
   EventLogger* logger_;
   
@@ -215,6 +233,7 @@ private:
 // RCPSP instance structure
 struct Task {
   int id;
+  std::string name;
   int duration;
   std::vector<int> successors;
   std::vector<int> resource_demands;
@@ -240,11 +259,11 @@ RCPSPInstance CreateSimpleInstance() {
   instance.resources[0].capacity = 3;
   instance.resources[1].capacity = 2;
   
-  instance.tasks[0] = {0, 3, {1}, {2, 1}};
-  instance.tasks[1] = {1, 4, {2}, {1, 2}};
-  instance.tasks[2] = {2, 2, {3}, {2, 1}};
-  instance.tasks[3] = {3, 5, {4}, {1, 1}};
-  instance.tasks[4] = {4, 3, {}, {2, 0}};
+  instance.tasks[0] = {0, "Foundation", 3, {1}, {2, 1}};
+  instance.tasks[1] = {1, "Framing", 4, {2}, {1, 2}};
+  instance.tasks[2] = {2, "Roofing", 2, {3}, {2, 1}};
+  instance.tasks[3] = {3, "Electrical", 5, {4}, {1, 1}};
+  instance.tasks[4] = {4, "Painting", 3, {}, {2, 0}};
   
   instance.horizon = 20;
   
@@ -272,6 +291,7 @@ int main(int argc, char** argv) {
   std::vector<IntervalVar> intervals;
   std::vector<IntegerVariable> start_vars;
   std::vector<int> task_ids;
+  std::vector<std::string> task_names;
   
   // Create intervals for each task
   for (int i = 0; i < instance.tasks.size(); ++i) {
@@ -284,8 +304,9 @@ int main(int argc, char** argv) {
     IntervalVar interval = cp_model.NewIntervalVar(start, duration, end);
     intervals.push_back(interval);
     
-    // Store task ID and start variable
+    // Store task ID, name, and start variable
     task_ids.push_back(task.id);
+    task_names.push_back(task.name);
     start_vars.push_back(IntegerVariable(start.index()));
   }
   
@@ -326,65 +347,90 @@ int main(int argc, char** argv) {
     ends.push_back(interval.EndExpr());
   }
   cp_model.AddMaxEquality(makespan, ends);
-  cp_model.Minimize(makespan);
+cp_model.Minimize(makespan);
 
   // Build the CpModelProto
-  const CpModelProto model_proto = cp_model.Build();
+  CpModelProto model_proto = cp_model.Build();
   std::cout << "Built CpModelProto with " << model_proto.variables_size() << " variables" << std::endl;
+  
+  // Add a search strategy to the model proto to configure search heuristics
+  // This is required for SolveLoadedCpModel to work properly
+  DecisionStrategyProto* strategy = model_proto.add_search_strategy();
+  strategy->set_variable_selection_strategy(DecisionStrategyProto::CHOOSE_FIRST);
+  strategy->set_domain_reduction_strategy(DecisionStrategyProto::SELECT_MIN_VALUE);
+  
+  // Add all start variables to the search strategy
+  for (const IntegerVariable& var : start_vars) {
+    strategy->add_variables(var.value());
+  }
+
+  std::cout << "Added search strategy with " << strategy->variables_size() << " variables" << std::endl;
 
   // Create Model for solver
   Model model;
-  
-  // Add solution observer to log events when solutions are found
-  model.Add(NewFeasibleSolutionObserver([&logger, &task_ids, &start_vars](const CpSolverResponse& response) {
-    std::cout << "Solution found!" << std::endl;
-    
-    // Log events for each task
-    for (size_t i = 0; i < task_ids.size(); ++i) {
-      int task_id = task_ids[i];
-      int64_t start = response.solution(start_vars[i].value());
-      
-      logger.LogEvent({
-        EventType::START_VAR_ASSIGNED,
-        logger.GetTimestamp(),
-        task_id,
-        start,
-        "Start variable fixed to " + std::to_string(start)
-      });
-      
-      logger.LogEvent({
-        EventType::TASK_SCHEDULED,
-        logger.GetTimestamp(),
-        task_id,
-        start,
-        "Task scheduled at time " + std::to_string(start)
-      });
-    }
-  }));
 
-  // Configure solver parameters
+  // Configure solver parameters BEFORE loading the model
   SatParameters parameters;
   parameters.set_max_time_in_seconds(30.0);
-  parameters.set_num_search_workers(1);  // Single worker for propagator to work
+  parameters.set_num_search_workers(1);
   parameters.set_search_branching(SatParameters::PORTFOLIO_SEARCH);
-  parameters.set_cp_model_presolve(false);  // Disable presolve to keep propagator
-  parameters.set_enumerate_all_solutions(true);  // Capture all solutions
+  parameters.set_cp_model_presolve(false);
+  parameters.set_enumerate_all_solutions(true);
 
-  // Add parameters to model
   model.Add(NewSatParameters(parameters));
 
-  // Log solver start event
+  model.GetOrCreate<SharedResponseManager>()->InitializeObjective(model_proto);
+  std::cout << "Initialized objective" << std::endl;
+
+  LoadCpModel(model_proto, &model);
+  CpModelMapping* mapping = model.GetOrCreate<CpModelMapping>();
+  std::cout << "Loaded full model into model" << std::endl;
+
+  IntegerTrail* integer_trail = model.GetOrCreate<IntegerTrail>();
+  GenericLiteralWatcher* watcher = model.GetOrCreate<GenericLiteralWatcher>();
+
+  std::vector<IntegerVariable> solver_start_vars;
+  for (const IntegerVariable& model_var : start_vars) {
+    IntegerVariable solver_var = mapping->Integer(model_var.value());
+    solver_start_vars.push_back(solver_var);
+  }
+  std::cout << "Converted " << solver_start_vars.size() << " variables to solver variables" << std::endl;
+
+  StartVariableWatcher* start_watcher = new StartVariableWatcher(
+    solver_start_vars,
+    task_ids,
+    task_names,
+    integer_trail,
+    &logger
+  );
+
+  const int propagator_id = watcher->Register(start_watcher);
+  watcher->SetPropagatorId(propagator_id);
+
+  for (const IntegerVariable& var : solver_start_vars) {
+    watcher->WatchLowerBound(var, propagator_id);
+    watcher->WatchUpperBound(var, propagator_id);
+  }
+
+  model.TakeOwnership(start_watcher);
+
+  std::cout << "Registered start variable watcher with ID " << propagator_id << std::endl;
+  std::cout << "Watching " << solver_start_vars.size() << " solver variables" << std::endl;
+
   logger.LogEvent({
     EventType::SEARCH_DECISION,
     logger.GetTimestamp(),
     -1,
+    "Solver",
     0,
     "Solver started"
   });
 
-  // Solve the model
   std::cout << "Starting solver..." << std::endl;
-  const CpSolverResponse response = SolveCpModel(model_proto, &model);
+  SolveLoadedCpModel(model_proto, &model);
+
+  SharedResponseManager* response_manager = model.GetOrCreate<SharedResponseManager>();
+  const CpSolverResponse response = response_manager->GetResponse();
 
   std::cout << "Solver finished" << std::endl;
   std::cout << "Status: " << response.status() << std::endl;

@@ -4,6 +4,7 @@ export interface TaskEvent {
   id: string;
   type: EventType;
   taskId: string;
+  taskName?: string;
   timestamp: number;
   startTime?: number;
   endTime?: number;

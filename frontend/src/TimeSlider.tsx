@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import { useTimelineStore } from "./store";
@@ -31,7 +31,10 @@ export const TimeSlider: React.FC = () => {
       lastTimestamp = timestamp;
 
       const timeIncrement = delta * playbackSpeed;
-      const newTime = Math.min(currentTime + timeIncrement, maxTime);
+      const newTime = Math.min(
+        useTimelineStore.getState().currentTime + timeIncrement,
+        maxTime,
+      );
 
       setCurrentTime(newTime);
 
@@ -47,13 +50,25 @@ export const TimeSlider: React.FC = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isPlaying, currentTime, maxTime, playbackSpeed, setCurrentTime]);
+  }, [isPlaying, maxTime, playbackSpeed, setCurrentTime]);
 
-  const handleSliderChange = (value: number | number[]) => {
-    if (typeof value === "number") {
-      setCurrentTime(value);
-    }
-  };
+  const handleSliderChange = useCallback(
+    (value: number | number[]) => {
+      if (typeof value === "number") {
+        setCurrentTime(value);
+      }
+    },
+    [setCurrentTime],
+  );
+
+  const handleSliderAfterChange = useCallback(
+    (value: number | number[]) => {
+      if (typeof value === "number") {
+        setCurrentTime(value);
+      }
+    },
+    [setCurrentTime],
+  );
 
   const progress =
     maxTime > minTime
@@ -61,12 +76,7 @@ export const TimeSlider: React.FC = () => {
       : 0;
 
   const formatTime = (ms: number) => {
-    const date = new Date(ms);
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    const seconds = date.getSeconds().toString().padStart(2, "0");
-    const millis = date.getMilliseconds().toString().padStart(3, "0");
-    return `${hours}:${minutes}:${seconds}.${millis}`;
+    return `Step ${ms}`;
   };
 
   return (
@@ -74,13 +84,13 @@ export const TimeSlider: React.FC = () => {
       <div className="time-controls">
         <button onClick={() => setCurrentTime(minTime)}>⏮</button>
         <button
-          onClick={() => setCurrentTime(Math.max(minTime, currentTime - 1000))}
+          onClick={() => setCurrentTime(Math.max(minTime, currentTime - 1))}
         >
           ⏪
         </button>
         <button onClick={togglePlayback}>{isPlaying ? "⏸" : "▶️"}</button>
         <button
-          onClick={() => setCurrentTime(Math.min(maxTime, currentTime + 1000))}
+          onClick={() => setCurrentTime(Math.min(maxTime, currentTime + 1))}
         >
           ⏩
         </button>
@@ -93,6 +103,7 @@ export const TimeSlider: React.FC = () => {
           max={maxTime}
           value={currentTime}
           onChange={handleSliderChange}
+          onAfterChange={handleSliderAfterChange}
           step={1}
         />
       </div>

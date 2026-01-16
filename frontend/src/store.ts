@@ -28,15 +28,21 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     const minTime = Math.min(...timestamps);
     const maxTime = Math.max(...timestamps);
 
+    // Find first timestamp with an assign event
+    const firstAssignEvent = events.find((e) => e.type === "assign");
+    const initialTime = firstAssignEvent ? firstAssignEvent.timestamp : minTime;
+
     set({
       events,
       minTime,
       maxTime,
-      currentTime: minTime,
+      currentTime: initialTime,
     });
   },
 
-  setCurrentTime: (time) => set({ currentTime: time }),
+  setCurrentTime: (time) => {
+    set({ currentTime: time });
+  },
 
   togglePlayback: () => set((state) => ({ isPlaying: !state.isPlaying })),
 
@@ -48,44 +54,44 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     const { events } = get();
     const taskMap = new Map<string, Task>();
 
-    events
-      .filter((event) => event.timestamp <= time)
-      .forEach((event) => {
-        switch (event.type) {
-          case "assign":
-            taskMap.set(event.taskId, {
-              id: event.taskId,
-              name: event.taskId,
-              start: new Date(event.startTime || 0),
-              end: new Date(event.endTime || 0),
-              progress: 0,
-              resourceId: event.resourceId,
-            });
-            break;
-          case "remove":
-            taskMap.delete(event.taskId);
-            break;
-          case "start":
-            const startTask = taskMap.get(event.taskId);
-            if (startTask && event.startTime) {
-              startTask.start = new Date(event.startTime);
-            }
-            break;
-          case "complete":
-            const completeTask = taskMap.get(event.taskId);
-            if (completeTask && event.endTime) {
-              completeTask.end = new Date(event.endTime);
-              completeTask.progress = 100;
-            }
-            break;
-          case "modify":
-            const modifyTask = taskMap.get(event.taskId);
-            if (modifyTask && event.newValue) {
-              Object.assign(modifyTask, event.newValue);
-            }
-            break;
-        }
-      });
+    const filteredEvents = events.filter((event) => event.timestamp <= time);
+
+    filteredEvents.forEach((event) => {
+      switch (event.type) {
+        case "assign":
+          taskMap.set(event.taskId, {
+            id: event.taskId,
+            name: event.taskName || event.taskId,
+            start: new Date(event.startTime || 0),
+            end: new Date(event.endTime || 0),
+            progress: 0,
+            resourceId: event.resourceId,
+          });
+          break;
+        case "remove":
+          taskMap.delete(event.taskId);
+          break;
+        case "start":
+          const startTask = taskMap.get(event.taskId);
+          if (startTask && event.startTime !== undefined) {
+            startTask.start = new Date(event.startTime);
+          }
+          break;
+        case "complete":
+          const completeTask = taskMap.get(event.taskId);
+          if (completeTask && event.endTime !== undefined) {
+            completeTask.end = new Date(event.endTime);
+            completeTask.progress = 100;
+          }
+          break;
+        case "modify":
+          const modifyTask = taskMap.get(event.taskId);
+          if (modifyTask && event.newValue) {
+            Object.assign(modifyTask, event.newValue);
+          }
+          break;
+      }
+    });
 
     return Array.from(taskMap.values());
   },
