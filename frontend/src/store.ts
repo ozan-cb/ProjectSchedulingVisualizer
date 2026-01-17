@@ -182,7 +182,11 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
       }
     });
 
-    return Array.from(taskMap.values());
+    return Array.from(taskMap.values()).sort((a, b) => {
+      const aId = parseInt(a.id);
+      const bId = parseInt(b.id);
+      return aId - bId;
+    });
   },
 
   getSearchTreeAtTime: (time) => {
