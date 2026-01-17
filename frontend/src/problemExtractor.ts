@@ -58,8 +58,13 @@ export function extractProblemDefinition(
         task.duration = event.endTime - event.startTime;
       }
 
-      // Extract dependencies from event
-      if (event.dependencies && event.dependencies.length > 0) {
+      // Extract dependencies from event (only from task definition events)
+      // Task definition events have description starting with "Task defined"
+      if (
+        event.description &&
+        event.description.startsWith("Task defined") &&
+        event.dependencies
+      ) {
         const task = tasks.get(event.taskId)!;
         task.dependencies = event.dependencies.map((depId) => depId.toString());
       }
