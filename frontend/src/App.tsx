@@ -5,6 +5,7 @@ import { TimeSlider } from "./TimeSlider";
 import { GanttChart } from "./GanttChart";
 import { SearchTree } from "./SearchTree";
 import { ViewToggle } from "./ViewToggle";
+import { GameMode } from "./GameMode";
 import "./App.css";
 
 export const FileLoader: React.FC = () => {
@@ -86,14 +87,20 @@ function App() {
         ) : (
           <div className="visualization">
             <ViewToggle />
-            <TimeSlider />
-            {viewMode === "gantt" && <GanttChart />}
-            {viewMode === "tree" && <SearchTree />}
-            {viewMode === "both" && (
-              <div className="split-view">
-                <GanttChart />
-                <SearchTree />
-              </div>
+            {viewMode === "game" ? (
+              <GameMode />
+            ) : (
+              <>
+                <TimeSlider />
+                {viewMode === "gantt" && <GanttChart />}
+                {viewMode === "tree" && <SearchTree />}
+                {viewMode === "both" && (
+                  <div className="split-view">
+                    <GanttChart />
+                    <SearchTree />
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

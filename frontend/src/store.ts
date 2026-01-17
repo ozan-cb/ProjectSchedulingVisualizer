@@ -6,9 +6,13 @@ import type {
   SearchTreeState,
   SearchNode,
   ViewMode,
+  GameState,
+  ConstraintViolation,
 } from "./types";
+import { extractProblemDefinition } from "./problemExtractor";
+import { validateSchedule as validateScheduleConstraints } from "./constraintValidator";
 
-interface TimelineStore extends TimelineState {
+interface TimelineStore extends TimelineState, GameState {
   loadEvents: (events: TaskEvent[]) => void;
   setCurrentTime: (time: number) => void;
   togglePlayback: () => void;
@@ -18,6 +22,15 @@ interface TimelineStore extends TimelineState {
   getSearchTreeAtTime: (time: number) => SearchTreeState;
   setViewMode: (mode: ViewMode) => void;
   getLatestEventAtTime: (time: number) => TaskEvent | null;
+  setGameMode: (enabled: boolean) => void;
+  setUserSchedule: (taskId: string, start: number, end: number) => void;
+  validateSchedule: () => ConstraintViolation[];
+  resetGame: (mode: "clear" | "revert") => void;
+  setEnforcementMode: (mode: "strict" | "learning") => void;
+  getProblemDefinition: () => ReturnType<typeof extractProblemDefinition>;
+  getCurrentCost: () => number;
+  isScheduleValid: () => boolean;
+  isScheduleOptimal: () => boolean;
 }
 
 const initialState: TimelineState = {
@@ -29,6 +42,12 @@ const initialState: TimelineState = {
   isPlaying: false,
   playbackSpeed: 1,
   viewMode: "gantt",
+  isGameMode: false,
+  userSchedule: new Map(),
+  constraintViolations: [],
+  gameStatus: "not_started",
+  enforcementMode: "learning",
+  lastValidSchedule: new Map(),
 };
 
 function calculateTreePositions(
@@ -250,5 +269,93 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     return eventsAtTime.length > 0
       ? eventsAtTime[eventsAtTime.length - 1]
       : null;
+  },
+
+  setGameMode: (enabled) => {
+    set({ isGameMode: enabled });
+    if (enabled) {
+      const problem = get().getProblemDefinition();
+      const initialSchedule = new Map<string, { start: number; end: number }>();
+      problem.tasks.forEach((task) => {
+        initialSchedule.set(task.id, { start: 0, end: task.duration });
+      });
+      set({
+        userSchedule: initialSchedule,
+        lastValidSchedule: new Map(initialSchedule),
+        gameStatus: "in_progress",
+      });
+      get().validateSchedule();
+    }
+  },
+
+  setUserSchedule: (taskId, start, end) => {
+    const state = get();
+    const newSchedule = new Map(state.userSchedule);
+    newSchedule.set(taskId, { start, end });
+    set({ userSchedule: newSchedule });
+    get().validateSchedule();
+  },
+
+  validateSchedule: () => {
+    const state = get();
+    const problem = state.getProblemDefinition();
+    const violations = validateScheduleConstraints(state.userSchedule, problem);
+    const isValid = violations.length === 0;
+    set({ constraintViolations: violations });
+
+    if (isValid) {
+      set({
+        lastValidSchedule: new Map(state.userSchedule),
+        gameStatus: "in_progress",
+      });
+    }
+
+    return violations;
+  },
+
+  resetGame: (mode) => {
+    const state = get();
+    if (mode === "clear") {
+      set({
+        userSchedule: new Map(),
+        constraintViolations: [],
+        gameStatus: "not_started",
+      });
+    } else if (mode === "revert") {
+      set({
+        userSchedule: new Map(state.lastValidSchedule),
+        constraintViolations: [],
+        gameStatus: "in_progress",
+      });
+    }
+  },
+
+  setEnforcementMode: (mode) => {
+    set({ enforcementMode: mode });
+  },
+
+  getProblemDefinition: () => {
+    const state = get();
+    return extractProblemDefinition(state.events);
+  },
+
+  getCurrentCost: () => {
+    const state = get();
+    if (state.userSchedule.size === 0) return 0;
+    return Math.max(
+      ...Array.from(state.userSchedule.values()).map((t) => t.end),
+    );
+  },
+
+  isScheduleValid: () => {
+    const state = get();
+    return state.constraintViolations.length === 0;
+  },
+
+  isScheduleOptimal: () => {
+    const state = get();
+    const problem = state.getProblemDefinition();
+    const currentCost = state.getCurrentCost();
+    return state.isScheduleValid() && currentCost === problem.optimalMakespan;
   },
 }));

@@ -24,6 +24,12 @@ export const ViewToggle: React.FC = () => {
       >
         Both Views
       </button>
+      <button
+        className={`view-btn ${viewMode === "game" ? "active" : ""}`}
+        onClick={() => setViewMode("game")}
+      >
+        Game Mode
+      </button>
     </div>
   );
 };

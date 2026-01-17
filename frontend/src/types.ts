@@ -58,10 +58,33 @@ export interface TimelineState {
   minTime: number;
   isPlaying: boolean;
   playbackSpeed: number;
-  viewMode: "gantt" | "tree" | "both";
+  viewMode: ViewMode;
+  isGameMode: boolean;
+  userSchedule: Map<string, { start: number; end: number }>;
+  constraintViolations: ConstraintViolation[];
+  gameStatus: "not_started" | "in_progress" | "completed";
+  enforcementMode: "strict" | "learning";
+  lastValidSchedule: Map<string, { start: number; end: number }>;
 }
 
-export type ViewMode = "gantt" | "tree" | "both";
+export type ViewMode = "gantt" | "tree" | "both" | "game";
+
+export interface ConstraintViolation {
+  type: "precedence" | "resource" | "overlap";
+  taskId: string;
+  message: string;
+  severity: "error" | "warning";
+  relatedTasks?: string[];
+}
+
+export interface GameState {
+  isGameMode: boolean;
+  userSchedule: Map<string, { start: number; end: number }>;
+  constraintViolations: ConstraintViolation[];
+  gameStatus: "not_started" | "in_progress" | "completed";
+  enforcementMode: "strict" | "learning";
+  lastValidSchedule: Map<string, { start: number; end: number }>;
+}
 
 export interface EventFile {
   version: string;
