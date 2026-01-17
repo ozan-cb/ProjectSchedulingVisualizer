@@ -23,6 +23,46 @@ The Resource-Constrained Project Scheduling Problem (RCPSP) is one of the most c
 - Aerospace mission planning
 - Supply chain optimization
 
+## Real-World Example: Building a House
+
+Let's say you're building a house with the following tasks:
+
+| Task       | Duration | Precedence           | Resources     |
+| ---------- | -------- | -------------------- | ------------- |
+| Foundation | 3 days   | None                 | 2 workers     |
+| Framing    | 5 days   | Foundation           | 3 workers     |
+| Roofing    | 2 days   | Framing              | 2 workers     |
+| Electrical | 3 days   | Framing              | 1 electrician |
+| Plumbing   | 3 days   | Framing              | 1 plumber     |
+| Drywall    | 2 days   | Electrical, Plumbing | 2 workers     |
+| Painting   | 2 days   | Drywall              | 2 workers     |
+| Flooring   | 2 days   | Drywall              | 2 workers     |
+
+**Constraints:**
+
+- You only have **4 workers** total available at any time
+- You have **1 electrician** and **1 plumber** (specialized resources)
+- Tasks must follow precedence (e.g., can't frame before foundation)
+- Some tasks can happen in parallel (electrical and plumbing)
+
+**The Challenge:**
+What's the shortest schedule that respects all constraints?
+
+- If you had unlimited workers, you could do everything in parallel after framing
+- But with only 4 workers, you need to carefully sequence tasks
+- The solver explores different combinations, backtracking when it hits dead ends
+
+**What RCPSP-viz Shows:**
+Watch the solver try different schedules:
+
+- Assign Foundation to day 0-2 ✓
+- Assign Framing to day 3-7 ✓
+- Try assigning Electrical to day 8-10, Plumbing to day 8-10 → **Too many workers!**
+- Backtrack: Try Electrical to day 8-10, Plumbing to day 11-13 ✓
+- Continue exploring until finding optimal schedule...
+
+This is exactly what RCPSP-viz visualizes - the solver's search process in real-time!
+
 ## Why is RCPSP Important?
 
 RCPSP is **NP-hard**, meaning finding optimal solutions becomes exponentially difficult as problem size increases. This has profound implications:
