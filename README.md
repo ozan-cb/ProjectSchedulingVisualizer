@@ -1,10 +1,12 @@
-# RCPSP-viz
+# ScheduleSight
 
 **Visualize the search process of Constraint Programming solvers for Resource-Constrained Project Scheduling Problems**
 
+![ScheduleSight Logo](logo.svg)
+
 ## Demo
 
-[![Demo RCPSP-viz](https://raw.githubusercontent.com/ozan-cb/ProjectSchedulingVisualizer/main/RCPSP-viz.gif)](https://raw.githubusercontent.com/ozan-cb/ProjectSchedulingVisualizer/main/RCPSP-viz.mov)
+[![Demo ScheduleSight](https://raw.githubusercontent.com/ozan-cb/ProjectSchedulingVisualizer/main/RCPSP-viz.gif)](https://raw.githubusercontent.com/ozan-cb/ProjectSchedulingVisualizer/main/RCPSP-viz.mov)
 
 ## What is RCPSP?
 
@@ -52,7 +54,7 @@ What's the shortest schedule that respects all constraints?
 - But with only 4 workers, you need to carefully sequence tasks
 - The solver explores different combinations, backtracking when it hits dead ends
 
-**What RCPSP-viz Shows:**
+**What ScheduleSight Shows:**
 Watch the solver try different schedules:
 
 - Assign Foundation to day 0-2 ✓
@@ -61,7 +63,7 @@ Watch the solver try different schedules:
 - Backtrack: Try Electrical to day 8-10, Plumbing to day 11-13 ✓
 - Continue exploring until finding optimal schedule...
 
-This is exactly what RCPSP-viz visualizes - the solver's search process in real-time!
+This is exactly what ScheduleSight visualizes - the solver's search process in real-time!
 
 ## Why is RCPSP Important?
 
@@ -81,7 +83,7 @@ Modern solvers like OR-Tools CP-SAT use sophisticated search strategies, but the
 
 ## What Does This Library Do?
 
-RCPSP-viz provides **unprecedented visibility** into the CP-SAT solver's search process by:
+ScheduleSight provides **unprecedented visibility** into the CP-SAT solver's search process by:
 
 ### 🔍 Intermediate Event Logging
 
@@ -156,7 +158,7 @@ A React-based frontend that lets you:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd RCPSP-viz
+cd ScheduleSight
 
 # Build the driver
 mkdir build && cd build
