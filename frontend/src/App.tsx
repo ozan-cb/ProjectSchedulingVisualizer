@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import type { EventFile } from "./types";
 import { useTimelineStore } from "./store";
 import { TimeSlider } from "./TimeSlider";
-import { GanttChart } from "./GanttChart";
 import { SearchTree } from "./SearchTree";
 import { ViewToggle } from "./ViewToggle";
 import { GameMode } from "./GameMode";
+import { ReadOnlyGantt } from "./ReadOnlyGantt";
 import "./App.css";
 
 export const FileLoader: React.FC = () => {
@@ -92,11 +92,11 @@ function App() {
             ) : (
               <>
                 <TimeSlider />
-                {viewMode === "gantt" && <GanttChart />}
+                {viewMode === "gantt" && <ReadOnlyGantt />}
                 {viewMode === "tree" && <SearchTree />}
                 {viewMode === "both" && (
                   <div className="split-view">
-                    <GanttChart />
+                    <ReadOnlyGantt />
                     <SearchTree />
                   </div>
                 )}

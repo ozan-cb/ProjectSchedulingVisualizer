@@ -28,6 +28,7 @@ interface TimelineStore extends TimelineState, GameState {
   resetGame: (mode: "clear" | "revert") => void;
   setEnforcementMode: (mode: "strict" | "learning") => void;
   getProblemDefinition: () => ReturnType<typeof extractProblemDefinition>;
+  getCurrentSchedule: () => Map<string, { start: number; end: number }>;
   getCurrentCost: () => number;
   isScheduleValid: () => boolean;
   isScheduleOptimal: () => boolean;
@@ -348,6 +349,15 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
   getProblemDefinition: () => {
     const state = get();
     return extractProblemDefinition(state.events);
+  },
+
+  getCurrentSchedule: () => {
+    const state = get();
+    if (state.isGameMode) {
+      return state.userSchedule;
+    }
+    const problem = state.getProblemDefinition();
+    return problem.optimalSchedule;
   },
 
   getCurrentCost: () => {
