@@ -17,7 +17,11 @@ export const CostDisplay: React.FC = () => {
     <div className="cost-display">
       <div className="cost-item">
         <span className="cost-label">Current Makespan:</span>
-        <span className={`cost-value ${!isValid ? "invalid" : ""}`}>
+        <span
+          className={`cost-value ${
+            !isValid ? "invalid" : isOptimal ? "optimal" : "suboptimal"
+          }`}
+        >
           {currentCost}
         </span>
       </div>

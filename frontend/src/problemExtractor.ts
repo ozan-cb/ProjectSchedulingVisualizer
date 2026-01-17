@@ -52,21 +52,26 @@ export function extractProblemDefinition(
         });
       }
 
-      // Extract duration from endTime - startTime
-      if (event.startTime !== undefined && event.endTime !== undefined) {
-        const task = tasks.get(event.taskId)!;
-        task.duration = event.endTime - event.startTime;
-      }
-
-      // Extract dependencies from event (only from task definition events)
+      // Extract duration and dependencies from task definition events only
       // Task definition events have description starting with "Task defined"
-      if (
-        event.description &&
-        event.description.startsWith("Task defined") &&
-        event.dependencies
-      ) {
+      if (event.description && event.description.startsWith("Task defined")) {
         const task = tasks.get(event.taskId)!;
-        task.dependencies = event.dependencies.map((depId) => depId.toString());
+
+        // Extract duration from description string (e.g., "Task defined with duration 4")
+        const durationMatch = event.description.match(/duration (\d+)/);
+        if (durationMatch) {
+          task.duration = parseInt(durationMatch[1], 10);
+          console.log(
+            `Task definition: ${task.name} (${task.id}), duration=${task.duration}`,
+          );
+        }
+
+        // Extract dependencies
+        if (event.dependencies) {
+          task.dependencies = event.dependencies.map((depId) =>
+            depId.toString(),
+          );
+        }
       }
     }
   });

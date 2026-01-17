@@ -31,7 +31,11 @@ export const DependencyArrows: React.FC<DependencyArrowsProps> = ({
 
     if (!taskTiming || !depTiming) return false;
 
-    return depTiming.end <= taskTiming.start;
+    const satisfied = depTiming.end <= taskTiming.start;
+    console.log(
+      `Arrow check: ${depId} -> ${taskId}: dep.end=${depTiming.end}, task.start=${taskTiming.start}, satisfied=${satisfied}`,
+    );
+    return satisfied;
   };
 
   const getArrowPath = (

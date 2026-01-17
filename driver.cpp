@@ -58,8 +58,8 @@ struct Event {
     oss << "\"taskId\":\"" << task_id << "\",";
     oss << "\"taskName\":\"" << task_name << "\",";
     oss << "\"timestamp\":" << timestamp << ",";
-    oss << "\"startTime\":" << value << ",";
-    oss << "\"endTime\":" << (value + 3) << ",";
+    oss << "\"startTime\":0,";
+    oss << "\"endTime\":" << value << ",";
     oss << "\"decisionLevel\":" << decision_level << ",";
     oss << "\"backtrackToLevel\":" << backtrack_to_level << ",";
     oss << "\"nodeId\":\"" << node_id << "\",";

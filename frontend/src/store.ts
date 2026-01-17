@@ -299,7 +299,18 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
   validateSchedule: () => {
     const state = get();
     const problem = state.getProblemDefinition();
+    console.log("=== VALIDATION DEBUG ===");
+    console.log(
+      "Problem tasks:",
+      problem.tasks.map((t) => ({
+        id: t.id,
+        name: t.name,
+        deps: t.dependencies,
+      })),
+    );
+    console.log("User schedule:", Object.fromEntries(state.userSchedule));
     const violations = validateScheduleConstraints(state.userSchedule, problem);
+    console.log("Violations found:", violations);
     const isValid = violations.length === 0;
     set({ constraintViolations: violations });
 

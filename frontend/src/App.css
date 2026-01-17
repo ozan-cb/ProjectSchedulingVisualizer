@@ -570,6 +570,14 @@ body {
   color: #ff6b6b;
 }
 
+.cost-value.optimal {
+  color: #4caf50;
+}
+
+.cost-value.suboptimal {
+  color: #ff9800;
+}
+
 .cost-status {
   display: flex;
   gap: 8px;

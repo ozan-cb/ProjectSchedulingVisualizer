@@ -97,6 +97,11 @@ export const DraggableGantt: React.FC = () => {
           const timing = userSchedule.get(task.id);
           const start = timing?.start ?? 0;
           const end = timing?.end ?? task.duration;
+          const duration = end - start;
+
+          console.log(
+            `Task ${task.name}: start=${start}, end=${end}, duration=${duration}, barWidth=${duration * unitWidth}px`,
+          );
 
           return (
             <div
@@ -116,6 +121,7 @@ export const DraggableGantt: React.FC = () => {
                     top: 5,
                     height: rowHeight - 10,
                   }}
+                  title={`${task.name}: ${start}-${end} (duration: ${end - start})`}
                 >
                   {task.name}
                 </div>
