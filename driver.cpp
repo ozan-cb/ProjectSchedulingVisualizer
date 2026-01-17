@@ -64,7 +64,7 @@ struct Event {
     oss << "\"backtrackToLevel\":" << backtrack_to_level << ",";
     oss << "\"nodeId\":\"" << node_id << "\",";
     oss << "\"parentNodeId\":\"" << parent_node_id << "\",";
-    oss << "\"nodeStatus\":\"" << node_status << ",";
+    oss << "\"nodeStatus\":\"" << node_status << "\",";
     oss << "\"description\":\"" << description << "\",";
     oss << "\"dependencies\":[";
     for (size_t i = 0; i < dependencies.size(); ++i) {
