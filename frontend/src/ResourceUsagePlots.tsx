@@ -3,8 +3,9 @@ import { useTimelineStore } from "./store";
 import { ResourceUsagePlot } from "./ResourceUsagePlot";
 
 export const ResourceUsagePlots: React.FC = () => {
-  const { getProblemDefinition, userSchedule } = useTimelineStore();
+  const { getProblemDefinition, getCurrentSchedule } = useTimelineStore();
   const problem = getProblemDefinition();
+  const schedule = getCurrentSchedule();
 
   return (
     <div className="resource-usage-plots">
@@ -13,7 +14,7 @@ export const ResourceUsagePlots: React.FC = () => {
         <ResourceUsagePlot
           key={resource.id}
           resource={resource}
-          schedule={userSchedule}
+          schedule={schedule}
           tasks={problem.tasks}
           timeHorizon={problem.timeHorizon}
         />

@@ -7,12 +7,20 @@ export const DraggableGantt: React.FC = () => {
     getProblemDefinition,
     userSchedule,
     setUserSchedule,
-    enforcementMode,
+    constraintViolations,
   } = useTimelineStore();
   const problem = getProblemDefinition();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const hasResourceViolation = (taskId: string) => {
+    return constraintViolations.some(
+      (v) =>
+        v.type === "resource" &&
+        (v.taskId === taskId || v.relatedTasks?.includes(taskId)),
+    );
+  };
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     const timing = userSchedule.get(taskId);
@@ -48,16 +56,6 @@ export const DraggableGantt: React.FC = () => {
     if (!task) return;
 
     const newEnd = newStart + task.duration;
-
-    if (enforcementMode === "strict") {
-      const tempSchedule = new Map(userSchedule);
-      tempSchedule.set(draggedTask, { start: newStart, end: newEnd });
-      const violations = useTimelineStore.getState().validateSchedule();
-      if (violations.length > 0) {
-        setDraggedTask(null);
-        return;
-      }
-    }
 
     setUserSchedule(draggedTask, newStart, newEnd);
     setDraggedTask(null);
@@ -98,6 +96,7 @@ export const DraggableGantt: React.FC = () => {
           const start = timing?.start ?? 0;
           const end = timing?.end ?? task.duration;
           const duration = end - start;
+          const isResourceConstrained = hasResourceViolation(task.id);
 
           console.log(
             `Task ${task.name}: start=${start}, end=${end}, duration=${duration}, barWidth=${duration * unitWidth}px`,
@@ -112,7 +111,7 @@ export const DraggableGantt: React.FC = () => {
               <div className="task-name">{task.name}</div>
               <div className="timeline-row">
                 <div
-                  className="task-bar"
+                  className={`task-bar ${isResourceConstrained ? "resource-violation" : ""}`}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task.id)}
                   style={{

@@ -30,6 +30,43 @@ body {
   justify-content: space-between;
 }
 
+.header-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.instance-selector {
+  display: flex;
+  align-items: center;
+}
+
+.instance-select {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  background: white;
+  color: #666;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  min-width: 200px;
+}
+
+.instance-select:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.instance-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 .header h1 {
   font-size: 20px;
   font-weight: 700;
@@ -152,6 +189,29 @@ body {
   width: 100%;
   box-sizing: border-box;
   min-width: 0;
+}
+
+.gantt-chart-with-resources {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  min-height: 300px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resource-usage-section {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  flex-shrink: 0;
 }
 
 .gantt-chart h3 {
@@ -306,15 +366,35 @@ body {
 .view-toggle {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 16px;
   margin-bottom: 12px;
+}
+
+.view-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.view-group-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-right: 8px;
+  border-right: 2px solid #e0e0e0;
 }
 
 .view-btn {
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.95);
+  background: white;
   color: #666;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
@@ -342,6 +422,16 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   width: 100%;
+}
+
+.split-view .gantt-chart {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.split-view .search-tree {
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .search-tree {
@@ -524,18 +614,27 @@ body {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 20px;
+  max-height: 600px;
 }
 
 .game-main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: hidden;
+}
+
+.game-main .draggable-gantt {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px;
 }
 
 .game-sidebar {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
 }
 
 .cost-display {
@@ -612,26 +711,8 @@ body {
   padding: 12px 16px;
   border-radius: 8px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-}
-
-.enforcement-mode {
-  display: flex;
-  gap: 16px;
-}
-
-.enforcement-mode label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-}
-
-.enforcement-mode input[type="radio"] {
-  cursor: pointer;
 }
 
 .reset-buttons {
@@ -715,6 +796,10 @@ body {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+}
+
+.task-bar.resource-violation {
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%) !important;
 }
 
 .timeline-row {

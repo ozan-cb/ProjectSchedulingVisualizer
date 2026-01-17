@@ -1,0 +1,32 @@
+{
+  "instances": [
+    {
+      "id": "simple",
+      "name": "House Renovation",
+      "description": "7 tasks, 2 resources - Good for learning basics (optimal: 18)",
+      "difficulty": "beginner",
+      "file": "events-simple.json"
+    },
+    {
+      "id": "resource",
+      "name": "Resource Constrained",
+      "description": "6 tasks, 1 resource - Learn to sequence tasks (optimal: 20)",
+      "difficulty": "beginner",
+      "file": "events-resource.json"
+    },
+    {
+      "id": "complex",
+      "name": "Software Development",
+      "description": "6 tasks, 2 resources - Requires back-and-forth scheduling (optimal: 14)",
+      "difficulty": "intermediate",
+      "file": "events-complex.json"
+    },
+    {
+      "id": "software",
+      "name": "Rocket Launch",
+      "description": "5 tasks, 1 resource - Static Fire Test needs 2 engineers (optimal: 8)",
+      "difficulty": "intermediate",
+      "file": "events-software.json"
+    }
+  ]
+}

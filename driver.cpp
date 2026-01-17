@@ -381,6 +381,12 @@ struct RCPSPInstance {
   int horizon;
 };
 
+// Forward declarations
+RCPSPInstance CreateSimpleInstance();
+RCPSPInstance CreateComplexInstance();
+RCPSPInstance CreateResourceConstrainedInstance();
+RCPSPInstance CreateSoftwareDevInstance();
+
 // Create simple RCPSP instance
 RCPSPInstance CreateSimpleInstance() {
   RCPSPInstance instance;
@@ -405,25 +411,218 @@ RCPSPInstance CreateSimpleInstance() {
   instance.tasks[5] = {5, "Painting", 3, {}, {1, 1}};
   instance.tasks[6] = {6, "Flooring", 4, {}, {2, 0}};
 
+instance.horizon = 25;
+
+  return instance;
+}
+
+RCPSPInstance CreateComplexInstance() {
+  RCPSPInstance instance;
+
+  instance.tasks.resize(6);
+  instance.resources.resize(2);
+
+  instance.resources[0].capacity = 1;
+  instance.resources[1].capacity = 1;
+
+  // Software development project with bottleneck resources
+  // Requires back-and-forth scheduling to find optimal
+  //
+  // Resources:
+  //   R0: Senior Developer (capacity 1) - bottleneck
+  //   R1: Designer (capacity 1) - bottleneck
+  //
+  // Greedy (earliest start):
+  //   Requirements: 0-3 (needs 1 of R1)
+  //   Design: 3-6 (needs 1 of R0)
+  //   Backend: 6-8 (needs 1 of R0), Frontend: 6-9 (needs 1 of R1) - CONFLICT on R1!
+  //   Testing: 9-12 (needs 1 of R0)
+  //   Deployment: 12-14 (needs 1 of R0)
+  //   Total: 14
+  //
+  // Optimal (delay Backend):
+  //   Requirements: 0-3 (needs 1 of R1)
+  //   Design: 3-6 (needs 1 of R0)
+  //   Frontend: 6-9 (needs 1 of R1)
+  //   Backend: 9-11 (needs 1 of R0) - delayed
+  //   Testing: 11-14 (needs 1 of R0)
+  //   Deployment: 14-16 (needs 1 of R0)
+  //   Total: 16
+  instance.tasks[0] = {0, "Requirements", 3, {1}, {0, 1}};
+  instance.tasks[1] = {1, "Design", 3, {2, 3}, {1, 0}};
+  instance.tasks[2] = {2, "Backend", 2, {4}, {1, 0}};
+  instance.tasks[3] = {3, "Frontend", 3, {4}, {0, 1}};
+  instance.tasks[4] = {4, "Testing", 3, {5}, {1, 0}};
+  instance.tasks[5] = {5, "Deployment", 2, {}, {1, 0}};
+
+  instance.horizon = 20;
+
+  return instance;
+}
+
+RCPSPInstance CreateResourceConstrainedInstance() {
+  RCPSPInstance instance;
+
+  instance.tasks.resize(6);
+  instance.resources.resize(1);
+
+  instance.resources[0].capacity = 1;
+
+  // Resource-constrained instance with interesting names
+  // Foundation must finish before Framing and Plumbing can start
+  // Framing and Plumbing both need the same resource (capacity 1)
+  // Scheduling them concurrently causes resource overuse
+  // Additional tasks follow to make it more interesting
+  //
+  // Greedy (earliest start):
+  //   Foundation: 0-3 (needs 1 of R0)
+  //   Framing: 3-7 (needs 1 of R0), Plumbing: 3-7 (needs 1 of R0) - CONFLICT!
+  //   Must schedule sequentially: Framing: 3-7, Plumbing: 7-11
+  //   Electrical: 11-14 (needs 1 of R0)
+  //   Drywall: 14-17 (needs 1 of R0)
+  //   Painting: 17-20 (needs 1 of R0)
+  //   Total: 20
+  //
+  // Optimal:
+  //   Foundation: 0-3 (needs 1 of R0)
+  //   Framing: 3-7 (needs 1 of R0)
+  //   Plumbing: 7-11 (needs 1 of R0)
+  //   Electrical: 11-14 (needs 1 of R0)
+  //   Drywall: 14-17 (needs 1 of R0)
+  //   Painting: 17-20 (needs 1 of R0)
+  //   Total: 20
+  instance.tasks[0] = {0, "Foundation", 3, {1, 2}, {1}};
+  instance.tasks[1] = {1, "Framing", 4, {3}, {1}};
+  instance.tasks[2] = {2, "Plumbing", 4, {3}, {1}};
+  instance.tasks[3] = {3, "Electrical", 3, {4}, {1}};
+  instance.tasks[4] = {4, "Drywall", 3, {5}, {1}};
+  instance.tasks[5] = {5, "Painting", 3, {}, {1}};
+
   instance.horizon = 25;
 
   return instance;
 }
 
+RCPSPInstance CreateSoftwareDevInstance() {
+  RCPSPInstance instance;
+
+  instance.tasks.resize(5);
+  instance.resources.resize(1);
+
+  instance.resources[0].capacity = 2;
+
+  // Rocket launch preparation with resource bottleneck
+  // Static Fire Test requires 2 engineers simultaneously
+  // Other tasks only need 1 engineer
+  //
+  // Greedy (earliest start):
+  //   Calibrate Sensors: 0-2 (needs 1 of R0)
+  //   Load Cryo-Fuel: 0-2 (needs 1 of R0) - OK, capacity 2
+  //   Upload Nav Data: 2-6 (needs 1 of R0)
+  //   Static Fire Test: 2-5 (needs 2 of R0) - CONFLICT with Upload Nav Data!
+  //   Must schedule sequentially: Upload Nav Data: 2-6, Static Fire Test: 6-9
+  //   Launch: 9-10 (needs 1 of R0)
+  //   Total: 10
+  //
+  // Optimal (delay Upload Nav Data):
+  //   Calibrate Sensors: 0-2 (needs 1 of R0)
+  //   Load Cryo-Fuel: 0-2 (needs 1 of R0)
+  //   Static Fire Test: 2-5 (needs 2 of R0)
+  //   Upload Nav Data: 5-9 (needs 1 of R0) - delayed
+  //   Launch: 9-10 (needs 1 of R0)
+  //   Total: 10
+  //
+  // Wait, that's still 10. Let me reconsider...
+  //
+  // Actually, the optimal is:
+  //   Calibrate Sensors: 0-2 (needs 1 of R0)
+  //   Load Cryo-Fuel: 0-2 (needs 1 of R0)
+  //   Static Fire Test: 2-5 (needs 2 of R0)
+  //   Upload Nav Data: 0-4 (needs 1 of R0) - can run in parallel with prep tasks!
+  //   Launch: 5-6 (needs 1 of R0)
+  //   Total: 6
+  //
+  // Hmm, but Upload Nav Data has no prerequisites, so it can start at time 0.
+  // Let me verify: Calibrate Sensors (0-2), Load Cryo-Fuel (0-2), Upload Nav Data (0-4)
+  // At time 0-2: 3 engineers needed, but capacity is 2! CONFLICT!
+  //
+  // So we need to sequence:
+  //   Calibrate Sensors: 0-2 (needs 1 of R0)
+  //   Load Cryo-Fuel: 0-2 (needs 1 of R0)
+  //   Upload Nav Data: 2-6 (needs 1 of R0) - delayed
+  //   Static Fire Test: 2-5 (needs 2 of R0) - CONFLICT with Upload Nav Data!
+  //
+  // Optimal:
+  //   Calibrate Sensors: 0-2 (needs 1 of R0)
+  //   Load Cryo-Fuel: 0-2 (needs 1 of R0)
+  //   Static Fire Test: 2-5 (needs 2 of R0)
+  //   Upload Nav Data: 5-9 (needs 1 of R0) - delayed
+  //   Launch: 9-10 (needs 1 of R0)
+  //   Total: 10
+  //
+  // Wait, the user expects optimal to be 8. Let me reconsider the structure...
+  //
+  // Actually, looking at the tasks again:
+  // - Task 3 (Upload Nav Data) has NO prerequisites
+  // - Task 4 (Launch) requires Task 3 (Static Fire Test)
+  //
+  // So Upload Nav Data doesn't need to finish before Launch, it's independent!
+  // The optimal schedule is:
+  //   Calibrate Sensors: 0-2 (needs 1 of R0)
+  //   Load Cryo-Fuel: 0-2 (needs 1 of R0)
+  //   Static Fire Test: 2-5 (needs 2 of R0)
+  //   Upload Nav Data: 5-9 (needs 1 of R0) - can run after Static Fire Test
+  //   Launch: 5-6 (needs 1 of R0)
+  //   Total: 9
+  //
+  // Still not 8. Let me try another arrangement:
+  //   Calibrate Sensors: 0-2 (needs 1 of R0)
+  //   Upload Nav Data: 0-4 (needs 1 of R0)
+  //   Load Cryo-Fuel: 2-4 (needs 1 of R0) - delayed
+  //   Static Fire Test: 4-7 (needs 2 of R0) - delayed
+  //   Launch: 7-8 (needs 1 of R0)
+  //   Total: 8
+  //
+  // Yes! This works. The key insight is that Upload Nav Data can start at time 0
+  // and run in parallel with one of the prep tasks, then the other prep task
+  // runs, followed by Static Fire Test and Launch.
+  instance.tasks[0] = {0, "Calibrate Sensors", 2, {2}, {1}};
+  instance.tasks[1] = {1, "Load Cryo-Fuel", 2, {2}, {1}};
+  instance.tasks[2] = {2, "Static Fire Test", 3, {4}, {2}};
+  instance.tasks[3] = {3, "Upload Nav Data", 4, {}, {1}};
+  instance.tasks[4] = {4, "Launch", 1, {}, {1}};
+
+  instance.horizon = 20;
+
+  return instance;
+}
+
 int main(int argc, char** argv) {
-  std::string output_file = "events.json";
+  std::string instance_type = "simple";
   if (argc > 1) {
-    output_file = argv[1];
+    instance_type = argv[1];
   }
 
+  std::string output_file = "events-" + instance_type + ".json";
+
   std::cout << "RCPSP Start Variable Watcher (Propagator)" << std::endl;
+  std::cout << "Instance type: " << instance_type << std::endl;
   std::cout << "Output file: " << output_file << std::endl;
 
   // Create event logger
   EventLogger logger(output_file);
 
   // Create RCPSP instance
-  RCPSPInstance instance = CreateSimpleInstance();
+  RCPSPInstance instance;
+  if (instance_type == "complex") {
+    instance = CreateComplexInstance();
+  } else if (instance_type == "resource") {
+    instance = CreateResourceConstrainedInstance();
+  } else if (instance_type == "software") {
+    instance = CreateSoftwareDevInstance();
+  } else {
+    instance = CreateSimpleInstance();
+  }
   std::cout << "Created RCPSP instance with " << instance.tasks.size() << " tasks" << std::endl;
 
   // Build CP-SAT model
@@ -460,9 +659,15 @@ int main(int argc, char** argv) {
     task_durations[instance.tasks[i].id] = instance.tasks[i].duration;
   }
   
-  // Log task definitions with dependencies
+  // Log task definitions with dependencies and resource demands
   for (int i = 0; i < instance.tasks.size(); ++i) {
     const auto& task = instance.tasks[i];
+    std::string resource_info = "Resources: [";
+    for (size_t r = 0; r < task.resource_demands.size(); ++r) {
+      if (r > 0) resource_info += ", ";
+      resource_info += std::to_string(task.resource_demands[r]);
+    }
+    resource_info += "]";
     logger.LogEvent(
       EventType::TASK_SCHEDULED,
       logger.GetTimestamp(),
@@ -471,7 +676,7 @@ int main(int argc, char** argv) {
       task.duration,
       0,
       task.duration,
-      "Task defined with duration " + std::to_string(task.duration),
+      "Task defined with duration " + std::to_string(task.duration) + " " + resource_info,
       0,
       0,
       "",
@@ -621,6 +826,23 @@ cp_model.Minimize(makespan);
       int64_t start = response.solution(start_vars[i].value());
       int64_t end = start + instance.tasks[task_id].duration;
       std::cout << "  Task " << task_id << ": start=" << start << ", end=" << end << std::endl;
+    }
+
+    // Log final solution as events
+    for (size_t i = 0; i < task_ids.size(); ++i) {
+      int task_id = task_ids[i];
+      int64_t start = response.solution(start_vars[i].value());
+      int64_t end = start + instance.tasks[task_id].duration;
+      logger.LogEvent(
+        EventType::TASK_SCHEDULED,
+        logger.GetTimestamp(),
+        task_id,
+        task_names[i],
+        start,
+        start,
+        end,
+        "Final solution: Task scheduled at time " + std::to_string(start)
+      );
     }
   }
 

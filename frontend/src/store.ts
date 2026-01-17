@@ -8,12 +8,16 @@ import type {
   ViewMode,
   GameState,
   ConstraintViolation,
+  InstanceMetadata,
 } from "./types";
 import { extractProblemDefinition } from "./problemExtractor";
 import { validateSchedule as validateScheduleConstraints } from "./constraintValidator";
 
 interface TimelineStore extends TimelineState, GameState {
+  currentInstance: InstanceMetadata | null;
   loadEvents: (events: TaskEvent[]) => void;
+  setCurrentInstance: (instance: InstanceMetadata) => void;
+  switchInstance: (instance: InstanceMetadata) => void;
   setCurrentTime: (time: number) => void;
   togglePlayback: () => void;
   setPlaybackSpeed: (speed: number) => void;
@@ -26,7 +30,6 @@ interface TimelineStore extends TimelineState, GameState {
   setUserSchedule: (taskId: string, start: number, end: number) => void;
   validateSchedule: () => ConstraintViolation[];
   resetGame: (mode: "clear" | "revert") => void;
-  setEnforcementMode: (mode: "strict" | "learning") => void;
   getProblemDefinition: () => ReturnType<typeof extractProblemDefinition>;
   getCurrentSchedule: () => Map<string, { start: number; end: number }>;
   getCurrentCost: () => number;
@@ -42,12 +45,11 @@ const initialState: TimelineState = {
   minTime: 0,
   isPlaying: false,
   playbackSpeed: 1,
-  viewMode: "gantt",
+  viewMode: "game",
   isGameMode: false,
   userSchedule: new Map(),
   constraintViolations: [],
   gameStatus: "not_started",
-  enforcementMode: "learning",
   lastValidSchedule: new Map(),
 };
 
@@ -110,20 +112,38 @@ function calculateTreePositions(
 
 export const useTimelineStore = create<TimelineStore>((set, get) => ({
   ...initialState,
+  currentInstance: null,
 
   loadEvents: (events) => {
     const timestamps = events.map((e) => e.timestamp);
     const minTime = Math.min(...timestamps);
     const maxTime = Math.max(...timestamps);
 
-    const firstAssignEvent = events.find((e) => e.type === "assign");
-    const initialTime = firstAssignEvent ? firstAssignEvent.timestamp : minTime;
-
     set({
       events,
       minTime,
       maxTime,
-      currentTime: initialTime,
+      currentTime: minTime,
+    });
+  },
+
+  setCurrentInstance: (instance) => {
+    set({ currentInstance: instance });
+  },
+
+  switchInstance: (instance) => {
+    set({
+      currentInstance: instance,
+      events: [],
+      tasks: [],
+      currentTime: 0,
+      maxTime: 0,
+      minTime: 0,
+      isPlaying: false,
+      userSchedule: new Map(),
+      constraintViolations: [],
+      gameStatus: "not_started",
+      lastValidSchedule: new Map(),
     });
   },
 
@@ -135,7 +155,7 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
 
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 
-  reset: () => set(initialState),
+  reset: () => set({ ...initialState, currentInstance: null }),
 
   setViewMode: (mode) => set({ viewMode: mode }),
 
@@ -353,10 +373,6 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
         gameStatus: "in_progress",
       });
     }
-  },
-
-  setEnforcementMode: (mode) => {
-    set({ enforcementMode: mode });
   },
 
   getProblemDefinition: () => {

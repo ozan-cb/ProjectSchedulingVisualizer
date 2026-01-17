@@ -10,108 +10,132 @@
 
 ## What is RCPSP?
 
-The Resource-Constrained Project Scheduling Problem (RCPSP) is one of the most challenging and widely studied optimization problems in operations research. It involves scheduling a set of tasks subject to:
+The Resource-Constrained Project Scheduling Problem (RCPSP) is about scheduling tasks when you have two types of constraints:
 
-- **Precedence constraints**: Tasks must be completed in a specific order
-- **Resource constraints**: Limited resources (workers, machines, materials) are available
-- **Time constraints**: Each task has a duration and must be scheduled within a time horizon
+**1. Precedence Constraints** - Tasks must happen in order
 
-**Real-world applications:**
+- You can't paint walls before they're built
+- You can't launch a rocket before testing it
+- Some tasks depend on others finishing first
 
-- Construction project management
-- Software development planning
-- Manufacturing scheduling
-- Healthcare resource allocation
-- Aerospace mission planning
-- Supply chain optimization
+**2. Resource Constraints** - You have limited resources
 
-## Real-World Example: Building a House
+- Only 3 workers available
+- Only 1 specialized machine
+- Limited budget or materials
 
-Let's say you're building a house with the following tasks:
+**The Challenge:** Find the shortest schedule that respects both types of constraints.
 
-| Task       | Duration | Precedence           | Resources     |
-| ---------- | -------- | -------------------- | ------------- |
-| Foundation | 3 days   | None                 | 2 workers     |
-| Framing    | 5 days   | Foundation           | 3 workers     |
-| Roofing    | 2 days   | Framing              | 2 workers     |
-| Electrical | 3 days   | Framing              | 1 electrician |
-| Plumbing   | 3 days   | Framing              | 1 plumber     |
-| Drywall    | 2 days   | Electrical, Plumbing | 2 workers     |
-| Painting   | 2 days   | Drywall              | 2 workers     |
-| Flooring   | 2 days   | Drywall              | 2 workers     |
+This sounds simple, but it's actually **NP-hard** - meaning finding optimal solutions becomes exponentially difficult as problems get larger. That's why we need sophisticated solvers like OR-Tools CP-SAT.
+
+## Try It Yourself: The Scheduling Game
+
+Want to understand how constraint solvers work? Try beating the solver!
+
+ScheduleSight includes an interactive game where you can:
+
+- **Drag and drop** tasks to create your own schedule
+- **See resource usage** in real-time
+- **Compare your schedule** against the optimal solution
+- **Watch the solver** try to find the optimal schedule step-by-step
+
+### How to Play
+
+1. **Select an instance** - Choose from beginner to intermediate difficulty
+2. **Drag tasks** - Click and drag task bars to schedule them
+3. **Watch resources** - The resource plot shows if you're exceeding capacity
+4. **Check your score** - See how close you are to the optimal makespan
+5. **Watch the solver** - Switch to solver view to see how CP-SAT finds the optimal solution
+
+### Available Instances
+
+| Instance             | Tasks | Resources | Difficulty   | Optimal |
+| -------------------- | ----- | --------- | ------------ | ------- |
+| House Renovation     | 7     | 2         | Beginner     | 18      |
+| Resource Constrained | 6     | 1         | Beginner     | 20      |
+| Software Development | 6     | 2         | Intermediate | 14      |
+| Rocket Launch        | 5     | 1         | Intermediate | 8       |
+
+### Quick Start
+
+```bash
+# Clone and navigate to the project
+git clone <repository-url>
+cd ScheduleSight/frontend
+
+# Install dependencies
+npm install
+
+# Start the game
+npm run dev
+```
+
+Open `http://localhost:5173/` and start playing!
+
+## Real-World Applications
+
+RCPSP appears everywhere:
+
+- **Construction**: Scheduling crews, equipment, and materials
+- **Software Development**: Allocating developers to features
+- **Manufacturing**: Coordinating machines and workers
+- **Healthcare**: Scheduling nurses, doctors, and equipment
+- **Aerospace**: Planning rocket launches and missions
+- **Supply Chain**: Managing warehouses and transportation
+
+## What ScheduleSight Shows
+
+Most constraint solvers are black boxes - you give them a problem, they give you a solution. But **how** did they find it?
+
+ScheduleSight peels back the curtain by capturing every step of the solver's search process:
+
+### Watch the Solver Think
+
+- **Task assignments**: See when the solver decides to schedule a task
+- **Backtracking**: Watch the solver hit dead ends and try different approaches
+- **Bound tightening**: See how the solver narrows down possibilities
+- **Search patterns**: Understand the solver's strategy
+
+### Example: Building a House
+
+Imagine you're building a house with these tasks:
+
+| Task       | Duration | Dependencies         | Resources Needed |
+| ---------- | -------- | -------------------- | ---------------- |
+| Foundation | 3 days   | None                 | 2 workers        |
+| Framing    | 5 days   | Foundation           | 3 workers        |
+| Electrical | 3 days   | Framing              | 1 electrician    |
+| Plumbing   | 3 days   | Framing              | 1 plumber        |
+| Drywall    | 2 days   | Electrical, Plumbing | 2 workers        |
 
 **Constraints:**
 
-- You only have **4 workers** total available at any time
-- You have **1 electrician** and **1 plumber** (specialized resources)
-- Tasks must follow precedence (e.g., can't frame before foundation)
-- Some tasks can happen in parallel (electrical and plumbing)
+- Only 4 workers total
+- 1 electrician, 1 plumber
+- Must follow precedence order
 
-**The Challenge:**
-What's the shortest schedule that respects all constraints?
+**Watch the solver explore:**
 
-- If you had unlimited workers, you could do everything in parallel after framing
-- But with only 4 workers, you need to carefully sequence tasks
-- The solver explores different combinations, backtracking when it hits dead ends
+1. Assign Foundation to day 0-2 ✓
+2. Assign Framing to day 3-7 ✓
+3. Try Electrical to day 8-10, Plumbing to day 8-10 → **Too many workers!**
+4. Backtrack: Try Electrical to day 8-10, Plumbing to day 11-13 ✓
+5. Continue exploring until finding optimal schedule...
 
-**What ScheduleSight Shows:**
-Watch the solver try different schedules:
+ScheduleSight shows you every step of this process in real-time!
 
-- Assign Foundation to day 0-2 ✓
-- Assign Framing to day 3-7 ✓
-- Try assigning Electrical to day 8-10, Plumbing to day 8-10 → **Too many workers!**
-- Backtrack: Try Electrical to day 8-10, Plumbing to day 11-13 ✓
-- Continue exploring until finding optimal schedule...
+## Why This Matters
 
-This is exactly what ScheduleSight visualizes - the solver's search process in real-time!
+Understanding how solvers work is crucial for:
 
-## Why is RCPSP Important?
+- **Debugging**: Figure out why your model isn't finding solutions
+- **Optimization**: Improve solver performance by understanding search patterns
+- **Trust**: Build confidence in automated scheduling decisions
+- **Education**: Learn constraint programming by watching it in action
 
-RCPSP is **NP-hard**, meaning finding optimal solutions becomes exponentially difficult as problem size increases. This has profound implications:
+## Technical Details
 
-- **Economic impact**: Poor scheduling can cost millions in delays and inefficiencies
-- **Resource optimization**: Critical for industries with limited resources
-- **Decision support**: Helps project managers make informed trade-offs
-- **Algorithm research**: Serves as a benchmark for optimization techniques
-
-Modern solvers like OR-Tools CP-SAT use sophisticated search strategies, but the search process remains a **black box**. Understanding how the solver explores the solution space is crucial for:
-
-- Debugging constraint models
-- Improving solver performance
-- Building trust in automated decisions
-- Educational purposes
-
-## What Does This Library Do?
-
-ScheduleSight provides **unprecedented visibility** into the CP-SAT solver's search process by:
-
-### 🔍 Intermediate Event Logging
-
-Captures solver events in real-time using OR-Tools' `PropagatorInterface`:
-
-- **Task assignments**: When tasks are scheduled
-- **Backtracks**: When the solver backtracks from dead ends
-- **Bound changes**: When time bounds are tightened
-- **Search progress**: Step-by-step exploration of the solution space
-
-### 📊 Interactive Visualization
-
-A React-based frontend that lets you:
-
-- **Step through** the solver's search process
-- **Watch tasks** being assigned and removed in real-time
-- **Understand backtracking** behavior
-- **Analyze search patterns** and decision points
-
-### 🎯 Key Features
-
-- **Real-time event capture** using propagator hooks
-- **Gantt chart visualization** of task schedules
-- **Time slider** to explore solver steps
-- **Task names and metadata** for clarity
-- **JSON event export** for analysis
-
-## How It Works
+### Architecture
 
 ```
 ┌─────────────────┐
@@ -140,91 +164,9 @@ A React-based frontend that lets you:
          ▼
 ┌─────────────────┐
 │  React Frontend │ ← Visualizes search process
-│  (Gantt Chart)  │
+│  (Game + Gantt) │
 └─────────────────┘
 ```
-
-## Quick Start
-
-### Prerequisites
-
-- CMake 3.18+
-- C++ compiler (Clang, GCC, or MSVC)
-- Node.js 18+ (for frontend)
-- Bun or npm
-
-### Build & Run
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd ScheduleSight
-
-# Build the driver
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --target driver --parallel 6
-
-# Run the solver (generates events.json)
-cd ..
-./build/driver
-
-# Copy events to frontend
-cp events.json frontend/public/events.json
-
-# Start the frontend
-cd frontend
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173/` to see the visualization!
-
-## Example Output
-
-The solver generates an `events.json` file containing:
-
-```json
-{
-  "events": [
-    {
-      "type": "assign",
-      "taskId": "0",
-      "taskName": "Foundation",
-      "timestamp": 21,
-      "startTime": 0,
-      "endTime": 3,
-      "description": "Task assigned to start at time 0"
-    },
-    {
-      "type": "backtrack",
-      "taskId": "1",
-      "timestamp": 22,
-      "description": "Backtracking from task assignment"
-    }
-  ]
-}
-```
-
-## Use Cases
-
-### 🏗️ Project Management
-
-Understand how scheduling decisions are made and identify bottlenecks in the search process.
-
-### 🔬 Research & Education
-
-Study constraint programming techniques and solver behavior in real-time.
-
-### 🐛 Debugging
-
-Identify why a solver is struggling to find solutions or taking too long.
-
-### 📈 Performance Tuning
-
-Analyze search patterns to optimize constraint models and solver parameters.
-
-## Technical Details
 
 ### Backend (C++)
 
@@ -238,23 +180,34 @@ Analyze search patterns to optimize constraint models and solver parameters.
 - **Framework**: React + Vite
 - **Visualization**: Custom Gantt chart component
 - **State Management**: Zustand
-- **UI Components**: rc-slider for time navigation
+- **Game Mode**: Interactive drag-and-drop scheduling
+- **Solver View**: Step-by-step search visualization
 
-### Solver Configuration
+### Building from Source
 
-```cpp
-solver.parameters().set_num_search_workers(1);  // Required for propagator
-solver.parameters().set_cp_model_presolve(false);  // Preserve model structure
+```bash
+# Build the driver
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target driver --parallel 6
+
+# Run the solver (generates events.json)
+cd ..
+./build/driver
+
+# Copy events to frontend
+cp events.json frontend/public/events.json
 ```
 
 ## Contributing
 
-Contributions are welcome! Areas of interest:
+Contributions welcome! Areas of interest:
 
-- Additional visualization types (search trees, resource usage)
+- Additional game instances and difficulty levels
+- New visualization types (search trees, resource usage heatmaps)
 - Support for other OR-Tools solvers
 - Performance optimizations
-- More example problems
+- Educational content and tutorials
 
 ## License
 

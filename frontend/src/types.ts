@@ -68,7 +68,6 @@ export interface TimelineState {
   userSchedule: Map<string, { start: number; end: number }>;
   constraintViolations: ConstraintViolation[];
   gameStatus: "not_started" | "in_progress" | "completed";
-  enforcementMode: "strict" | "learning";
   lastValidSchedule: Map<string, { start: number; end: number }>;
 }
 
@@ -87,7 +86,6 @@ export interface GameState {
   userSchedule: Map<string, { start: number; end: number }>;
   constraintViolations: ConstraintViolation[];
   gameStatus: "not_started" | "in_progress" | "completed";
-  enforcementMode: "strict" | "learning";
   lastValidSchedule: Map<string, { start: number; end: number }>;
 }
 
@@ -99,4 +97,16 @@ export interface EventFile {
     totalTasks?: number;
     solver?: string;
   };
+}
+
+export interface InstanceMetadata {
+  id: string;
+  name: string;
+  description: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  file: string;
+}
+
+export interface InstancesConfig {
+  instances: InstanceMetadata[];
 }
