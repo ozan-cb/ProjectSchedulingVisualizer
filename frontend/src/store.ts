@@ -167,6 +167,10 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
           if (startTask && event.startTime !== undefined) {
             startTask.start = new Date(event.startTime);
             startTask.startTime = event.startTime;
+            if (event.endTime !== undefined) {
+              startTask.end = new Date(event.endTime);
+              startTask.endTime = event.endTime;
+            }
           }
           break;
         case "complete":

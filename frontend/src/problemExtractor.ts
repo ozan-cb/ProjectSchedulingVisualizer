@@ -108,29 +108,67 @@ export function extractProblemDefinition(
 export function extractOptimalSchedule(
   events: TaskEvent[],
 ): Map<string, { start: number; end: number }> {
-  const schedule = new Map<string, { start: number; end: number }>();
+  // Get all unique timestamps
+  const timestamps = Array.from(new Set(events.map((e) => e.timestamp))).sort(
+    (a, b) => a - b,
+  );
 
-  // Get the last timestamp
-  const maxTimestamp = Math.max(...events.map((e) => e.timestamp));
+  // Get all task IDs
+  const taskIds = Array.from(
+    new Set(
+      events
+        .filter((e) => e.taskId && e.taskName !== "Solver")
+        .map((e) => e.taskId),
+    ),
+  );
 
-  // Get all events at the last timestamp
-  const finalEvents = events.filter((e) => e.timestamp === maxTimestamp);
+  let bestSchedule: Map<string, { start: number; end: number }> = new Map();
+  let bestMakespan = Infinity;
 
-  // Extract task timings from final events
-  finalEvents.forEach((event) => {
-    if (
-      event.taskId &&
-      event.startTime !== undefined &&
-      event.endTime !== undefined
-    ) {
-      schedule.set(event.taskId, {
-        start: event.startTime,
-        end: event.endTime,
-      });
+  // For each timestamp, check if we have a complete solution
+  for (const timestamp of timestamps) {
+    const schedule = new Map<string, { start: number; end: number }>();
+
+    // Get events at this timestamp, excluding task definition events
+    const eventsAtTimestamp = events.filter(
+      (e) =>
+        e.timestamp === timestamp &&
+        e.taskId &&
+        (e.type === "assign" || e.type === "start") &&
+        !e.description?.startsWith("Task defined"),
+    );
+
+    // Find the highest decision level at this timestamp
+    const maxDecisionLevel = Math.max(
+      ...eventsAtTimestamp.map((e) => e.decisionLevel || 0),
+    );
+
+    // Filter to only events with the highest decision level at this timestamp
+    const finalEvents = eventsAtTimestamp.filter(
+      (e) => (e.decisionLevel || 0) === maxDecisionLevel,
+    );
+
+    // Extract task timings from the final events
+    finalEvents.forEach((event) => {
+      if (event.startTime !== undefined && event.endTime !== undefined) {
+        schedule.set(event.taskId, {
+          start: event.startTime,
+          end: event.endTime,
+        });
+      }
+    });
+
+    // Check if we have a complete solution (all tasks assigned)
+    if (schedule.size === taskIds.length) {
+      const makespan = calculateMakespan(schedule);
+      if (makespan < bestMakespan) {
+        bestMakespan = makespan;
+        bestSchedule = schedule;
+      }
     }
-  });
+  }
 
-  return schedule;
+  return bestSchedule;
 }
 
 export function calculateMakespan(

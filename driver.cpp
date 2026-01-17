@@ -41,6 +41,8 @@ struct Event {
   int task_id;
   std::string task_name;
   int64_t value;
+  int64_t start_time;
+  int64_t end_time;
   std::string description;
   int decision_level;
   int backtrack_to_level;
@@ -58,8 +60,8 @@ struct Event {
     oss << "\"taskId\":\"" << task_id << "\",";
     oss << "\"taskName\":\"" << task_name << "\",";
     oss << "\"timestamp\":" << timestamp << ",";
-    oss << "\"startTime\":0,";
-    oss << "\"endTime\":" << value << ",";
+    oss << "\"startTime\":" << start_time << ",";
+    oss << "\"endTime\":" << end_time << ",";
     oss << "\"decisionLevel\":" << decision_level << ",";
     oss << "\"backtrackToLevel\":" << backtrack_to_level << ",";
     oss << "\"nodeId\":\"" << node_id << "\",";
@@ -132,8 +134,8 @@ public:
   }
 
   void LogEvent(EventType type, int64_t timestamp, int task_id, const std::string& task_name,
-                int64_t value, const std::string& description, int decision_level = 0,
-                int backtrack_to_level = 0, const std::string& node_id = "",
+                int64_t value, int64_t start_time, int64_t end_time, const std::string& description,
+                int decision_level = 0, int backtrack_to_level = 0, const std::string& node_id = "",
                 const std::string& parent_node_id = "", const std::string& node_status = "",
                 const std::vector<int>& dependencies = {}, const std::vector<int>& successors = {}) {
     Event event;
@@ -142,6 +144,8 @@ public:
     event.task_id = task_id;
     event.task_name = task_name;
     event.value = value;
+    event.start_time = start_time;
+    event.end_time = end_time;
     event.description = description;
     event.decision_level = decision_level;
     event.backtrack_to_level = backtrack_to_level;
@@ -169,14 +173,16 @@ private:
 // Custom propagator that watches start variables
 class StartVariableWatcher : public PropagatorInterface {
 public:
-  StartVariableWatcher(const std::vector<IntegerVariable>& start_vars,
-                      const std::vector<int>& task_ids,
-                      const std::vector<std::string>& task_names,
-                      IntegerTrail* integer_trail,
-                      EventLogger* logger)
+StartVariableWatcher(const std::vector<IntegerVariable>& start_vars,
+                       const std::vector<int>& task_ids,
+                       const std::vector<std::string>& task_names,
+                       const std::map<int, int>& task_durations,
+                       IntegerTrail* integer_trail,
+                       EventLogger* logger)
       : start_vars_(start_vars),
         task_ids_(task_ids),
         task_names_(task_names),
+        task_durations_(task_durations),
         integer_trail_(integer_trail),
         logger_(logger),
         decision_level_(0),
@@ -239,6 +245,8 @@ bool Propagate() override {
               task_id,
               task_name,
               it->second,
+              it->second,
+              value,
               "Backtracked from " + std::to_string(it->second) + " to " + std::to_string(value),
               decision_level_,
               backtrack_to,
@@ -264,12 +272,16 @@ bool Propagate() override {
           node_stack_.push_back(node_id);
           current_node_id_ = node_id;
 
+          int64_t end_time = value + task_durations_[task_id];
+
           logger_->LogEvent(
             EventType::START_VAR_ASSIGNED,
             logger_->GetTimestamp(),
             task_id,
             task_name,
             value,
+            value,
+            end_time,
             "Start variable fixed to " + std::to_string(value),
             decision_level_,
             0,
@@ -284,6 +296,8 @@ bool Propagate() override {
             task_id,
             task_name,
             value,
+            value,
+            end_time,
             "Task scheduled at time " + std::to_string(value),
             decision_level_,
             0,
@@ -306,6 +320,8 @@ bool Propagate() override {
             task_id,
             task_name,
             lb.value(),
+            lb.value(),
+            ub.value(),
             "Start variable bounds updated: [" + std::to_string(lb.value()) + ", " + std::to_string(ub.value()) + "]",
             decision_level_,
             0,
@@ -328,6 +344,7 @@ private:
   std::vector<IntegerVariable> start_vars_;
   std::vector<int> task_ids_;
   std::vector<std::string> task_names_;
+  std::map<int, int> task_durations_;
   IntegerTrail* integer_trail_;
   EventLogger* logger_;
 
@@ -435,10 +452,12 @@ int main(int argc, char** argv) {
   
   // Compute predecessors (dependencies) for each task
   std::vector<std::vector<int>> predecessors(instance.tasks.size());
+  std::map<int, int> task_durations;
   for (int i = 0; i < instance.tasks.size(); ++i) {
     for (int succ : instance.tasks[i].successors) {
       predecessors[succ].push_back(i);
     }
+    task_durations[instance.tasks[i].id] = instance.tasks[i].duration;
   }
   
   // Log task definitions with dependencies
@@ -449,6 +468,8 @@ int main(int argc, char** argv) {
       logger.GetTimestamp(),
       task.id,
       task.name,
+      task.duration,
+      0,
       task.duration,
       "Task defined with duration " + std::to_string(task.duration),
       0,
@@ -551,6 +572,7 @@ cp_model.Minimize(makespan);
     solver_start_vars,
     task_ids,
     task_names,
+    task_durations,
     integer_trail,
     &logger
   );
@@ -568,14 +590,16 @@ cp_model.Minimize(makespan);
   std::cout << "Registered start variable watcher with ID " << propagator_id << std::endl;
   std::cout << "Watching " << solver_start_vars.size() << " solver variables" << std::endl;
 
-  logger.LogEvent({
+  logger.LogEvent(
     EventType::SEARCH_DECISION,
     logger.GetTimestamp(),
     -1,
     "Solver",
     0,
+    0,
+    0,
     "Solver started"
-  });
+  );
 
   std::cout << "Starting solver..." << std::endl;
   SolveLoadedCpModel(model_proto, &model);

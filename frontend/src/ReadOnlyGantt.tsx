@@ -1,6 +1,5 @@
 import React from "react";
 import { useTimelineStore } from "./store";
-import { DependencyArrows } from "./DependencyArrows";
 import { ResourceUsagePlots } from "./ResourceUsagePlots";
 
 export const ReadOnlyGantt: React.FC = () => {
@@ -11,7 +10,6 @@ export const ReadOnlyGantt: React.FC = () => {
 
   const unitWidth = 40;
   const rowHeight = 40;
-  const taskNameWidth = 150;
 
   return (
     <div className="game-content">
