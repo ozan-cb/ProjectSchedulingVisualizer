@@ -26,6 +26,8 @@ export interface Task {
   name: string;
   start: Date;
   end: Date;
+  startTime: number;
+  endTime: number;
   progress: number;
   resourceId?: string;
   dependencies?: string[];

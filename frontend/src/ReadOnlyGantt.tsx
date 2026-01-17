@@ -29,8 +29,8 @@ export const ReadOnlyGantt: React.FC = () => {
           </div>
           <div className="gantt-body" style={{ position: "relative" }}>
             {tasks.map((task) => {
-              const start = task.start.getTime();
-              const end = task.end.getTime();
+              const start = task.startTime;
+              const end = task.endTime;
 
               return (
                 <div

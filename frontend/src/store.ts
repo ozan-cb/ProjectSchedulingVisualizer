@@ -153,6 +153,8 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
             name: event.taskName || event.taskId,
             start: new Date(event.startTime || 0),
             end: new Date(event.endTime || 0),
+            startTime: event.startTime || 0,
+            endTime: event.endTime || 0,
             progress: 0,
             resourceId: event.resourceId,
           });
@@ -164,12 +166,14 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
           const startTask = taskMap.get(event.taskId);
           if (startTask && event.startTime !== undefined) {
             startTask.start = new Date(event.startTime);
+            startTask.startTime = event.startTime;
           }
           break;
         case "complete":
           const completeTask = taskMap.get(event.taskId);
           if (completeTask && event.endTime !== undefined) {
             completeTask.end = new Date(event.endTime);
+            completeTask.endTime = event.endTime;
             completeTask.progress = 100;
           }
           break;
