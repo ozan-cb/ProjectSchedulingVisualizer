@@ -4,9 +4,10 @@ import { DependencyArrows } from "./DependencyArrows";
 import { ResourceUsagePlots } from "./ResourceUsagePlots";
 
 export const ReadOnlyGantt: React.FC = () => {
-  const { getProblemDefinition, getCurrentSchedule } = useTimelineStore();
+  const { getProblemDefinition, getTasksAtTime, currentTime } =
+    useTimelineStore();
   const problem = getProblemDefinition();
-  const schedule = getCurrentSchedule();
+  const tasks = getTasksAtTime(currentTime);
 
   const unitWidth = 40;
   const rowHeight = 40;
@@ -27,17 +28,9 @@ export const ReadOnlyGantt: React.FC = () => {
             </div>
           </div>
           <div className="gantt-body" style={{ position: "relative" }}>
-            <DependencyArrows
-              tasks={problem.tasks}
-              userSchedule={schedule}
-              unitWidth={unitWidth}
-              rowHeight={rowHeight}
-              taskNameWidth={taskNameWidth}
-            />
-            {problem.tasks.map((task) => {
-              const timing = schedule.get(task.id);
-              const start = timing?.start ?? 0;
-              const end = timing?.end ?? task.duration;
+            {tasks.map((task) => {
+              const start = task.start.getTime();
+              const end = task.end.getTime();
 
               return (
                 <div

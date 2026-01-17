@@ -273,9 +273,10 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
   },
 
   setGameMode: (enabled) => {
+    const state = get();
     set({ isGameMode: enabled });
-    if (enabled) {
-      const problem = get().getProblemDefinition();
+    if (enabled && state.userSchedule.size === 0) {
+      const problem = state.getProblemDefinition();
       const initialSchedule = new Map<string, { start: number; end: number }>();
       problem.tasks.forEach((task) => {
         initialSchedule.set(task.id, { start: 0, end: task.duration });
