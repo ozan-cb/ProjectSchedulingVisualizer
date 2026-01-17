@@ -211,7 +211,7 @@ Contributions welcome! Areas of interest:
 
 ## License
 
-[Specify your license here]
+MIT License - see [LICENSE](LICENSE) file for details
 
 ## Acknowledgments
 
