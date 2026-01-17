@@ -11,6 +11,11 @@ export interface TaskEvent {
   resourceId?: string;
   previousValue?: any;
   newValue?: any;
+  decisionLevel?: number;
+  backtrackToLevel?: number;
+  nodeId?: string;
+  parentNodeId?: string;
+  nodeStatus?: "created" | "pruned" | "solution";
 }
 
 export interface Task {
@@ -23,6 +28,28 @@ export interface Task {
   dependencies?: string[];
 }
 
+export interface SearchNode {
+  id: string;
+  parentId: string | null;
+  decisionLevel: number;
+  taskId: string;
+  taskName: string;
+  value: number;
+  timestamp: number;
+  status: "created" | "pruned" | "solution";
+  children: string[];
+  x: number;
+  y: number;
+}
+
+export interface SearchTreeState {
+  nodes: Map<string, SearchNode>;
+  rootId: string;
+  currentPath: string[];
+  maxDecisionLevel: number;
+  visibleNodes: Set<string>;
+}
+
 export interface TimelineState {
   events: TaskEvent[];
   tasks: Task[];
@@ -31,7 +58,10 @@ export interface TimelineState {
   minTime: number;
   isPlaying: boolean;
   playbackSpeed: number;
+  viewMode: "gantt" | "tree" | "both";
 }
+
+export type ViewMode = "gantt" | "tree" | "both";
 
 export interface EventFile {
   version: string;

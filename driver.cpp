@@ -42,6 +42,11 @@ struct Event {
   std::string task_name;
   int64_t value;
   std::string description;
+  int decision_level;
+  int backtrack_to_level;
+  std::string node_id;
+  std::string parent_node_id;
+  std::string node_status;
 
   std::string ToJson() const {
     std::ostringstream oss;
@@ -53,6 +58,11 @@ struct Event {
     oss << "\"timestamp\":" << timestamp << ",";
     oss << "\"startTime\":" << value << ",";
     oss << "\"endTime\":" << (value + 3) << ",";
+    oss << "\"decisionLevel\":" << decision_level << ",";
+    oss << "\"backtrackToLevel\":" << backtrack_to_level << ",";
+    oss << "\"nodeId\":\"" << node_id << "\",";
+    oss << "\"parentNodeId\":\"" << parent_node_id << "\",";
+    oss << "\"nodeStatus\":\"" << node_status << "\",";
     oss << "\"description\":\"" << description << "\"";
     oss << "}";
     return oss.str();
@@ -107,6 +117,25 @@ public:
     file_.flush();
   }
 
+  void LogEvent(EventType type, int64_t timestamp, int task_id, const std::string& task_name,
+                int64_t value, const std::string& description, int decision_level = 0,
+                int backtrack_to_level = 0, const std::string& node_id = "",
+                const std::string& parent_node_id = "", const std::string& node_status = "") {
+    Event event;
+    event.type = type;
+    event.timestamp = timestamp;
+    event.task_id = task_id;
+    event.task_name = task_name;
+    event.value = value;
+    event.description = description;
+    event.decision_level = decision_level;
+    event.backtrack_to_level = backtrack_to_level;
+    event.node_id = node_id;
+    event.parent_node_id = parent_node_id;
+    event.node_status = node_status;
+    LogEvent(event);
+  }
+
   int64_t GetTimestamp() const {
     auto now = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -132,86 +161,146 @@ public:
         task_ids_(task_ids),
         task_names_(task_names),
         integer_trail_(integer_trail),
-        logger_(logger) {
+        logger_(logger),
+        decision_level_(0),
+        max_decision_level_(0),
+        current_node_id_(""),
+        node_counter_(0) {
     CHECK(start_vars_.size() == task_ids_.size());
     CHECK(start_vars_.size() == task_names_.size());
+    node_stack_.push_back("root");
   }
 
-  bool Propagate() override {
+bool Propagate() override {
     static int call_count = 0;
     call_count++;
     if (call_count <= 10) {
       std::cout << "Propagate() called, count=" << call_count << std::endl;
     }
-    
+
     // Check all start variables for changes
     for (size_t i = 0; i < start_vars_.size(); ++i) {
       IntegerVariable var = start_vars_[i];
       int task_id = task_ids_[i];
       std::string task_name = task_names_[i];
-      
+
       // Get current bounds
       const IntegerValue lb = integer_trail_->LowerBound(var);
       const IntegerValue ub = integer_trail_->UpperBound(var);
-      
+
       // Check if variable is fixed
       if (lb == ub) {
         int64_t value = lb.value();
-        
+
         // Check if we've already logged this assignment
         auto it = logged_assignments_.find(task_id);
         if (it == logged_assignments_.end() || it->second != value) {
           // Check if this is a backtrack (assignment changed)
           if (it != logged_assignments_.end() && it->second != value) {
-            logger_->LogEvent({
+            // Backtrack occurred - find backtrack level
+            int backtrack_to = 0;
+            for (int j = node_stack_.size() - 1; j >= 0; --j) {
+              if (node_stack_[j] == current_node_id_) {
+                backtrack_to = j;
+                break;
+              }
+            }
+
+            decision_level_ = backtrack_to;
+
+            // Pop nodes from stack (including current node)
+            while (node_stack_.size() > backtrack_to) {
+              node_stack_.pop_back();
+            }
+
+            // Get parent after popping
+            std::string parent_id = node_stack_.empty() ? "root" : node_stack_.back();
+
+            logger_->LogEvent(
               EventType::BACKTRACK,
               logger_->GetTimestamp(),
               task_id,
               task_name,
               it->second,
-              "Backtracked from " + std::to_string(it->second) + " to " + std::to_string(value)
-            });
+              "Backtracked from " + std::to_string(it->second) + " to " + std::to_string(value),
+              decision_level_,
+              backtrack_to,
+              current_node_id_,
+              parent_id,
+              "pruned"
+            );
           }
-          
-          logged_assignments_[task_id] = value;
-          
-          logger_->LogEvent({
+
+          // Check if this is a new task being decided
+          bool is_new_task = (current_task_id_ != task_id);
+          if (is_new_task) {
+            decision_level_++;
+            max_decision_level_ = std::max(max_decision_level_, decision_level_);
+            current_task_id_ = task_id;
+          }
+
+          // New assignment - create new node
+          std::string node_id = "node_" + std::to_string(node_counter_++);
+          std::string parent_id = node_stack_.empty() ? "root" : node_stack_.back();
+
+          parent_map_[node_id] = parent_id;
+          node_stack_.push_back(node_id);
+          current_node_id_ = node_id;
+
+          logger_->LogEvent(
             EventType::START_VAR_ASSIGNED,
             logger_->GetTimestamp(),
             task_id,
             task_name,
             value,
-            "Start variable fixed to " + std::to_string(value)
-          });
-          
-          logger_->LogEvent({
+            "Start variable fixed to " + std::to_string(value),
+            decision_level_,
+            0,
+            node_id,
+            parent_id,
+            "created"
+          );
+
+          logger_->LogEvent(
             EventType::TASK_SCHEDULED,
             logger_->GetTimestamp(),
             task_id,
             task_name,
             value,
-            "Task scheduled at time " + std::to_string(value)
-          });
+            "Task scheduled at time " + std::to_string(value),
+            decision_level_,
+            0,
+            node_id,
+            parent_id,
+            "created"
+          );
+
+          logged_assignments_[task_id] = value;
         }
       } else {
         // Variable not fixed, log if bounds changed
         auto it = logged_bounds_.find(task_id);
         if (it == logged_bounds_.end() || it->second.first != lb.value() || it->second.second != ub.value()) {
           logged_bounds_[task_id] = {lb.value(), ub.value()};
-          
-          logger_->LogEvent({
+
+          logger_->LogEvent(
             EventType::START_VAR_CHANGED,
             logger_->GetTimestamp(),
             task_id,
             task_name,
             lb.value(),
-            "Start variable bounds updated: [" + std::to_string(lb.value()) + ", " + std::to_string(ub.value()) + "]"
-          });
+            "Start variable bounds updated: [" + std::to_string(lb.value()) + ", " + std::to_string(ub.value()) + "]",
+            decision_level_,
+            0,
+            current_node_id_,
+            node_stack_.empty() ? "" : node_stack_.back(),
+            "created"
+          );
         }
       }
     }
-    
-    return true; // No conflict
+
+    return true;
   }
 
   bool IncrementalPropagate(const std::vector<int>& watch_indices) override {
@@ -224,10 +313,19 @@ private:
   std::vector<std::string> task_names_;
   IntegerTrail* integer_trail_;
   EventLogger* logger_;
-  
+
   // Track logged assignments to avoid duplicates
   std::map<int, int64_t> logged_assignments_;
   std::map<int, std::pair<int64_t, int64_t>> logged_bounds_;
+
+  // Search tree tracking
+  int decision_level_;
+  int max_decision_level_;
+  std::string current_node_id_;
+  int current_task_id_;
+  std::vector<std::string> node_stack_;
+  std::map<std::string, std::string> parent_map_;
+  int node_counter_;
 };
 
 // RCPSP instance structure

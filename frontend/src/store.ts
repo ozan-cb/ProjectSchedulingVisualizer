@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import type { TaskEvent, Task, TimelineState } from "./types";
+import type {
+  TaskEvent,
+  Task,
+  TimelineState,
+  SearchTreeState,
+  SearchNode,
+  ViewMode,
+} from "./types";
 
 interface TimelineStore extends TimelineState {
   loadEvents: (events: TaskEvent[]) => void;
@@ -8,6 +15,9 @@ interface TimelineStore extends TimelineState {
   setPlaybackSpeed: (speed: number) => void;
   reset: () => void;
   getTasksAtTime: (time: number) => Task[];
+  getSearchTreeAtTime: (time: number) => SearchTreeState;
+  setViewMode: (mode: ViewMode) => void;
+  getLatestEventAtTime: (time: number) => TaskEvent | null;
 }
 
 const initialState: TimelineState = {
@@ -18,7 +28,65 @@ const initialState: TimelineState = {
   minTime: 0,
   isPlaying: false,
   playbackSpeed: 1,
+  viewMode: "gantt",
 };
+
+function calculateTreePositions(
+  nodes: Map<string, SearchNode>,
+  rootId: string,
+): void {
+  const nodeWidth = 120;
+  const horizontalSpacing = 40;
+  const verticalSpacing = 80;
+
+  const subtreeWidths = new Map<string, number>();
+
+  function calculateSubtreeWidth(nodeId: string): number {
+    const node = nodes.get(nodeId);
+    if (!node || node.children.length === 0) {
+      subtreeWidths.set(nodeId, nodeWidth);
+      return nodeWidth;
+    }
+
+    let totalWidth = 0;
+    node.children.forEach((childId, index) => {
+      const childWidth = calculateSubtreeWidth(childId);
+      totalWidth += childWidth;
+      if (index < node.children.length - 1) {
+        totalWidth += horizontalSpacing;
+      }
+    });
+
+    subtreeWidths.set(nodeId, Math.max(nodeWidth, totalWidth));
+    return subtreeWidths.get(nodeId)!;
+  }
+
+  function assignPositions(nodeId: string, x: number, y: number): void {
+    const node = nodes.get(nodeId);
+    if (!node) return;
+
+    node.x = x;
+    node.y = y;
+
+    if (node.children.length === 0) return;
+
+    const subtreeWidth = subtreeWidths.get(nodeId) || nodeWidth;
+    let currentX = x - subtreeWidth / 2;
+
+    node.children.forEach((childId) => {
+      const childWidth = subtreeWidths.get(childId) || nodeWidth;
+      const childX = currentX + childWidth / 2;
+      assignPositions(childId, childX, y + verticalSpacing);
+      currentX += childWidth + horizontalSpacing;
+    });
+  }
+
+  calculateSubtreeWidth(rootId);
+  const root = nodes.get(rootId);
+  if (root) {
+    assignPositions(rootId, 400, 60);
+  }
+}
 
 export const useTimelineStore = create<TimelineStore>((set, get) => ({
   ...initialState,
@@ -28,7 +96,6 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     const minTime = Math.min(...timestamps);
     const maxTime = Math.max(...timestamps);
 
-    // Find first timestamp with an assign event
     const firstAssignEvent = events.find((e) => e.type === "assign");
     const initialTime = firstAssignEvent ? firstAssignEvent.timestamp : minTime;
 
@@ -49,6 +116,8 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 
   reset: () => set(initialState),
+
+  setViewMode: (mode) => set({ viewMode: mode }),
 
   getTasksAtTime: (time) => {
     const { events } = get();
@@ -94,5 +163,92 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     });
 
     return Array.from(taskMap.values());
+  },
+
+  getSearchTreeAtTime: (time) => {
+    const { events } = get();
+    const nodes = new Map<string, SearchNode>();
+    const rootId = "root";
+    const currentPath: string[] = [rootId];
+    const visibleNodes = new Set<string>();
+    let maxDecisionLevel = 0;
+
+    nodes.set(rootId, {
+      id: rootId,
+      parentId: null,
+      decisionLevel: 0,
+      taskId: "root",
+      taskName: "Root",
+      value: 0,
+      timestamp: 0,
+      status: "created",
+      children: [],
+      x: 0,
+      y: 0,
+    });
+    visibleNodes.add(rootId);
+
+    for (const event of events) {
+      if (event.timestamp > time) break;
+
+      if (event.type === "assign" && event.nodeId) {
+        const nodeId = event.nodeId;
+        const parentId = event.parentNodeId || rootId;
+        const decisionLevel = event.decisionLevel || 0;
+
+        const newNode: SearchNode = {
+          id: nodeId,
+          parentId,
+          decisionLevel,
+          taskId: event.taskId,
+          taskName: event.taskName || event.taskId,
+          value: event.startTime || 0,
+          timestamp: event.timestamp,
+          status: (event.nodeStatus as any) || "created",
+          children: [],
+          x: 0,
+          y: 0,
+        };
+
+        nodes.set(nodeId, newNode);
+        visibleNodes.add(nodeId);
+        currentPath.push(nodeId);
+        maxDecisionLevel = Math.max(maxDecisionLevel, decisionLevel);
+
+        const parent = nodes.get(parentId);
+        if (parent) {
+          parent.children.push(nodeId);
+        }
+      } else if (
+        event.type === "remove" &&
+        event.backtrackToLevel !== undefined
+      ) {
+        const backtrackLevel = event.backtrackToLevel;
+        while (currentPath.length > backtrackLevel + 1) {
+          const removed = currentPath.pop();
+          if (removed) {
+            visibleNodes.delete(removed);
+          }
+        }
+      }
+    }
+
+    calculateTreePositions(nodes, rootId);
+
+    return {
+      nodes,
+      rootId,
+      currentPath,
+      maxDecisionLevel,
+      visibleNodes,
+    };
+  },
+
+  getLatestEventAtTime: (time) => {
+    const { events } = get();
+    const eventsAtTime = events.filter((e) => e.timestamp === time);
+    return eventsAtTime.length > 0
+      ? eventsAtTime[eventsAtTime.length - 1]
+      : null;
   },
 }));

@@ -40,6 +40,8 @@ export const TimeSlider: React.FC = () => {
 
       if (newTime < maxTime) {
         animationRef.current = requestAnimationFrame(animate);
+      } else {
+        togglePlayback();
       }
     };
 

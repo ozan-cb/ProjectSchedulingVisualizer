@@ -22,30 +22,34 @@ body {
 .header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  padding: 24px 40px;
+  padding: 12px 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .header h1 {
-  font-size: 32px;
+  font-size: 20px;
   font-weight: 700;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 8px;
+  margin: 0;
 }
 
 .header p {
   color: #666;
-  font-size: 16px;
+  font-size: 12px;
   line-height: 1.5;
+  margin: 0;
 }
 
 .content {
-  padding: 40px;
-  max-width: 1600px;
+  padding: 16px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -83,36 +87,36 @@ body {
 .visualization {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   width: 100%;
 }
 
 .time-slider {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  padding: 28px 32px;
-  border-radius: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .time-controls {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .time-controls button {
-  padding: 12px 20px;
-  font-size: 20px;
+  padding: 8px 16px;
+  font-size: 18px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  min-width: 50px;
+  min-width: 40px;
 }
 
 .time-controls button:hover {
@@ -125,15 +129,15 @@ body {
 }
 
 .slider-container {
-  margin: 24px 0;
+  margin: 12px 0;
   padding: 0 8px;
 }
 
 .time-display {
   display: flex;
   justify-content: space-between;
-  margin-top: 16px;
-  font-size: 15px;
+  margin-top: 8px;
+  font-size: 13px;
   color: #666;
   font-weight: 500;
 }
@@ -141,12 +145,13 @@ body {
 .gantt-chart {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  padding: 32px;
-  border-radius: 16px;
+  padding: 16px;
+  border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  min-height: 400px;
+  min-height: 300px;
   width: 100%;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .gantt-chart h3 {
@@ -155,6 +160,29 @@ body {
   color: #333;
   font-size: 24px;
   font-weight: 700;
+}
+
+.gantt-scroll-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafafa;
+  transition: all 0.3s ease;
+}
+
+.task-highlighted {
+  border: 2px solid #667eea !important;
+  background: #f0f4ff !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
 }
 
 .task-list {
@@ -273,4 +301,197 @@ body {
 .rc-slider-handle-dragging {
   border-color: #764ba2;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.6);
+}
+
+.view-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.view-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.95);
+  color: #666;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.view-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.view-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.split-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+.search-tree {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  min-height: 300px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.tree-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.tree-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.tree-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.tree-stats span {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.tree-container {
+  position: relative;
+  overflow: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+  min-height: 300px;
+  max-height: 500px;
+  cursor: grab;
+  user-select: none;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.tree-container:active {
+  cursor: grabbing;
+}
+
+.tree-node {
+  position: absolute;
+  width: 80px;
+  height: 50px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.tree-node:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tree-node.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.tree-node.pruned {
+  background: #ffebee;
+  border-color: #ef5350;
+  color: #c62828;
+}
+
+.tree-node.latest {
+  border: 3px solid #ff9800;
+  box-shadow: 0 0 20px rgba(255, 152, 0, 0.5);
+}
+
+.tree-node.latest::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px solid #ff9800;
+  border-radius: 14px;
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}
+
+.node-content {
+  text-align: center;
+  padding: 4px;
+}
+
+.node-task {
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 1px;
+}
+
+.node-value {
+  font-size: 9px;
+  opacity: 0.8;
+}
+
+.tree-edge {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tree-edge.active {
+  stroke: #667eea;
+  stroke-width: 2;
 }

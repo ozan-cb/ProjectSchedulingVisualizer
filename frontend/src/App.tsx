@@ -3,6 +3,8 @@ import type { EventFile } from "./types";
 import { useTimelineStore } from "./store";
 import { TimeSlider } from "./TimeSlider";
 import { GanttChart } from "./GanttChart";
+import { SearchTree } from "./SearchTree";
+import { ViewToggle } from "./ViewToggle";
 import "./App.css";
 
 export const FileLoader: React.FC = () => {
@@ -70,7 +72,7 @@ export const FileLoader: React.FC = () => {
 };
 
 function App() {
-  const { events } = useTimelineStore();
+  const { events, viewMode } = useTimelineStore();
 
   return (
     <div className="app">
@@ -83,8 +85,16 @@ function App() {
           <FileLoader />
         ) : (
           <div className="visualization">
+            <ViewToggle />
             <TimeSlider />
-            <GanttChart />
+            {viewMode === "gantt" && <GanttChart />}
+            {viewMode === "tree" && <SearchTree />}
+            {viewMode === "both" && (
+              <div className="split-view">
+                <GanttChart />
+                <SearchTree />
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,9 +1,21 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { useTimelineStore } from "./store";
 
 export const GanttChart: React.FC = () => {
-  const { currentTime, getTasksAtTime } = useTimelineStore();
+  const { currentTime, getTasksAtTime, isPlaying, getLatestEventAtTime } =
+    useTimelineStore();
   const tasks = useMemo(() => getTasksAtTime(currentTime), [currentTime]);
+  const latestEvent = useMemo(
+    () => getLatestEventAtTime(currentTime),
+    [currentTime, getLatestEventAtTime],
+  );
+  const ganttRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isPlaying && ganttRef.current) {
+      ganttRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [isPlaying]);
 
   if (tasks.length === 0) {
     return (
@@ -29,10 +41,10 @@ export const GanttChart: React.FC = () => {
   }
 
   return (
-    <div className="gantt-chart">
-      <h3>Tasks at Solver Step {currentTime}</h3>
+    <div ref={ganttRef} className="gantt-chart">
+      <h3>Tasks at Step {currentTime}</h3>
 
-      <div style={{ marginTop: "24px" }}>
+      <div className="gantt-scroll-container" style={{ marginTop: "12px" }}>
         <div
           style={{
             display: "flex",
@@ -62,20 +74,12 @@ export const GanttChart: React.FC = () => {
           const end = task.end.getTime();
           const left = ((start - minTime) / timeRange) * 100;
           const width = ((end - start) / timeRange) * 100;
+          const isHighlighted = latestEvent?.taskId === task.id;
 
           return (
             <div
               key={task.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "16px",
-                padding: "12px",
-                border: "1px solid #e0e0e0",
-                borderRadius: "8px",
-                background: "#fafafa",
-                transition: "all 0.3s ease",
-              }}
+              className={`task-row ${isHighlighted ? "task-highlighted" : ""}`}
             >
               <div
                 style={{
