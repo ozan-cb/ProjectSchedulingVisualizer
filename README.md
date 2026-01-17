@@ -1,6 +1,6 @@
 # ScheduleSight
 
-**Visualize the search process of Constraint Programming solvers for Resource-Constrained Project Scheduling Problems**
+**Explore Resource-Constrained Project Scheduling through interactive gameplay and solver visualization**
 
 ![ScheduleSight Logo](logo.svg)
 
