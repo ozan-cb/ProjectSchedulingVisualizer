@@ -47,6 +47,8 @@ struct Event {
   std::string node_id;
   std::string parent_node_id;
   std::string node_status;
+  std::vector<int> dependencies;
+  std::vector<int> successors;
 
   std::string ToJson() const {
     std::ostringstream oss;
@@ -62,8 +64,20 @@ struct Event {
     oss << "\"backtrackToLevel\":" << backtrack_to_level << ",";
     oss << "\"nodeId\":\"" << node_id << "\",";
     oss << "\"parentNodeId\":\"" << parent_node_id << "\",";
-    oss << "\"nodeStatus\":\"" << node_status << "\",";
-    oss << "\"description\":\"" << description << "\"";
+    oss << "\"nodeStatus\":\"" << node_status << ",";
+    oss << "\"description\":\"" << description << "\",";
+    oss << "\"dependencies\":[";
+    for (size_t i = 0; i < dependencies.size(); ++i) {
+      if (i > 0) oss << ",";
+      oss << dependencies[i];
+    }
+    oss << "],";
+    oss << "\"successors\":[";
+    for (size_t i = 0; i < successors.size(); ++i) {
+      if (i > 0) oss << ",";
+      oss << successors[i];
+    }
+    oss << "]";
     oss << "}";
     return oss.str();
   }
@@ -120,7 +134,8 @@ public:
   void LogEvent(EventType type, int64_t timestamp, int task_id, const std::string& task_name,
                 int64_t value, const std::string& description, int decision_level = 0,
                 int backtrack_to_level = 0, const std::string& node_id = "",
-                const std::string& parent_node_id = "", const std::string& node_status = "") {
+                const std::string& parent_node_id = "", const std::string& node_status = "",
+                const std::vector<int>& dependencies = {}, const std::vector<int>& successors = {}) {
     Event event;
     event.type = type;
     event.timestamp = timestamp;
@@ -133,6 +148,8 @@ public:
     event.node_id = node_id;
     event.parent_node_id = parent_node_id;
     event.node_status = node_status;
+    event.dependencies = dependencies;
+    event.successors = successors;
     LogEvent(event);
   }
 
@@ -350,21 +367,29 @@ struct RCPSPInstance {
 // Create simple RCPSP instance
 RCPSPInstance CreateSimpleInstance() {
   RCPSPInstance instance;
-  
-  instance.tasks.resize(5);
+
+  instance.tasks.resize(7);
   instance.resources.resize(2);
-  
+
   instance.resources[0].capacity = 3;
   instance.resources[1].capacity = 2;
-  
-  instance.tasks[0] = {0, "Foundation", 3, {1}, {2, 1}};
-  instance.tasks[1] = {1, "Framing", 4, {2}, {1, 2}};
-  instance.tasks[2] = {2, "Roofing", 2, {3}, {2, 1}};
-  instance.tasks[3] = {3, "Electrical", 5, {4}, {1, 1}};
-  instance.tasks[4] = {4, "Painting", 3, {}, {2, 0}};
-  
-  instance.horizon = 20;
-  
+
+  // House renovation with parallel work streams
+  // Foundation must be done first
+  // Then Framing and Plumbing can work in parallel
+  // Electrical follows Framing
+  // Drywall needs both Plumbing and Electrical done
+  // Painting and Flooring can work in parallel after Drywall
+  instance.tasks[0] = {0, "Foundation", 3, {1, 2}, {2, 1}};
+  instance.tasks[1] = {1, "Framing", 4, {3}, {1, 2}};
+  instance.tasks[2] = {2, "Plumbing", 3, {4}, {2, 1}};
+  instance.tasks[3] = {3, "Electrical", 4, {4}, {1, 1}};
+  instance.tasks[4] = {4, "Drywall", 3, {5, 6}, {2, 1}};
+  instance.tasks[5] = {5, "Painting", 3, {}, {1, 1}};
+  instance.tasks[6] = {6, "Flooring", 4, {}, {2, 0}};
+
+  instance.horizon = 25;
+
   return instance;
 }
 
@@ -406,6 +431,34 @@ int main(int argc, char** argv) {
     task_ids.push_back(task.id);
     task_names.push_back(task.name);
     start_vars.push_back(IntegerVariable(start.index()));
+  }
+  
+  // Compute predecessors (dependencies) for each task
+  std::vector<std::vector<int>> predecessors(instance.tasks.size());
+  for (int i = 0; i < instance.tasks.size(); ++i) {
+    for (int succ : instance.tasks[i].successors) {
+      predecessors[succ].push_back(i);
+    }
+  }
+  
+  // Log task definitions with dependencies
+  for (int i = 0; i < instance.tasks.size(); ++i) {
+    const auto& task = instance.tasks[i];
+    logger.LogEvent(
+      EventType::TASK_SCHEDULED,
+      logger.GetTimestamp(),
+      task.id,
+      task.name,
+      task.duration,
+      "Task defined with duration " + std::to_string(task.duration),
+      0,
+      0,
+      "",
+      "",
+      "",
+      predecessors[i],
+      task.successors
+    );
   }
   
   std::cout << "Built model with " << start_vars.size() << " start variables" << std::endl;

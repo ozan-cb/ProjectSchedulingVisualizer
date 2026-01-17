@@ -57,17 +57,12 @@ export function extractProblemDefinition(
         const task = tasks.get(event.taskId)!;
         task.duration = event.endTime - event.startTime;
       }
-    }
-  });
 
-  // Extract dependencies from precedence constraints
-  // For now, we'll use a simple heuristic: tasks that appear later depend on earlier tasks
-  // In a real implementation, this would come from the problem definition
-  const taskIds = Array.from(tasks.keys());
-  taskIds.forEach((taskId, index) => {
-    if (index > 0) {
-      const task = tasks.get(taskId)!;
-      task.dependencies = [taskIds[index - 1]];
+      // Extract dependencies from event
+      if (event.dependencies && event.dependencies.length > 0) {
+        const task = tasks.get(event.taskId)!;
+        task.dependencies = event.dependencies.map((depId) => depId.toString());
+      }
     }
   });
 

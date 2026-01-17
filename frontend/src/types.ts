@@ -16,6 +16,9 @@ export interface TaskEvent {
   nodeId?: string;
   parentNodeId?: string;
   nodeStatus?: "created" | "pruned" | "solution";
+  description?: string;
+  dependencies?: number[];
+  successors?: number[];
 }
 
 export interface Task {
