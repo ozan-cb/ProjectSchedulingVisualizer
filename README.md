@@ -64,10 +64,10 @@ git clone <repository-url>
 cd ScheduleSight/frontend
 
 # Install dependencies
-npm install
+bun install
 
 # Start the game
-npm run dev
+bun run dev
 ```
 
 Open `http://localhost:5173/` and start playing!
